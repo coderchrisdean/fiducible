@@ -922,7 +922,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // POST /documents/:id/revoke-access - Revoke access to document
-  app.post("/api/documents/:id/revoke-access", isAuthenticated, async (req, res) => {
+  app.post("/api/documents/:id/revoke-access", authenticateToken as any, async (req, res) => {
     try {
       const userId = (req.user as any).id;
       const documentId = parseInt(req.params.id);
@@ -953,7 +953,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // GET /documents/:id/download - Download document with access validation
-  app.get("/api/documents/:id/download", isAuthenticated, async (req, res) => {
+  app.get("/api/documents/:id/download", authenticateToken as any, async (req, res) => {
     try {
       const userId = (req.user as any).id;
       const documentId = parseInt(req.params.id);
@@ -992,7 +992,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // GET /documents/search - Search documents within accessible scope
-  app.get("/api/documents/search", isAuthenticated, async (req, res) => {
+  app.get("/api/documents/search", authenticateToken as any, async (req, res) => {
     try {
       const userId = (req.user as any).id;
       const { query, caseId } = req.query;
