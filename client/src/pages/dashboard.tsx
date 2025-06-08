@@ -125,7 +125,7 @@ export default function Dashboard() {
                   </div>
                 ))}
               </div>
-            ) : recentTimeEntries.length > 0 ? (
+            ) : recentTimeEntries && recentTimeEntries.length > 0 ? (
               <div className="space-y-4">
                 {recentTimeEntries.map((entry) => (
                   <div key={entry.id} className="flex items-center justify-between p-3 border rounded-lg">
