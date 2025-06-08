@@ -522,6 +522,209 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Document Management Routes
+  const { upload } = await import("./upload");
+  const { documentStorage } = await import("./documentStorage");
+  const { LocalFileStorage, validateFile, generateSearchText } = await import("./fileStorage");
+  
+  const fileStorage = new LocalFileStorage('./uploads');
+
+  // Document upload
+  app.post("/api/cases/:caseId/documents/upload", upload.array('files', 10), async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const caseId = parseInt(req.params.caseId);
+      if (isNaN(caseId)) {
+        return res.status(400).json({ message: "Invalid case ID" });
+      }
+
+      const files = req.files as Express.Multer.File[];
+      if (!files || files.length === 0) {
+        return res.status(400).json({ message: "No files uploaded" });
+      }
+
+      const { folderId, description } = req.body;
+      const uploadedDocuments = [];
+
+      for (const file of files) {
+        // Validate file
+        const validation = validateFile(file);
+        if (!validation.valid) {
+          return res.status(400).json({ message: validation.error });
+        }
+
+        // Save file to storage
+        const filePath = await fileStorage.saveFile(file.buffer, file.originalname, file.mimetype);
+        
+        // Generate search text
+        const searchVector = generateSearchText(file.originalname, file.mimetype);
+
+        // Create document record
+        const documentData = {
+          caseId,
+          uploadedBy: userId,
+          title: file.originalname,
+          description: description || null,
+          fileName: file.originalname,
+          filePath,
+          fileSize: file.size,
+          mimeType: file.mimetype,
+          folderId: folderId ? parseInt(folderId) : null,
+          searchVector,
+          downloadCount: 0,
+          isArchived: false
+        };
+
+        const document = await documentStorage.createDocument(documentData);
+        uploadedDocuments.push(document);
+      }
+
+      res.json({ 
+        documents: uploadedDocuments,
+        message: `${uploadedDocuments.length} file(s) uploaded successfully`
+      });
+    } catch (error) {
+      console.error("Document upload error:", error);
+      res.status(500).json({ message: "Failed to upload documents" });
+    }
+  });
+
+  // List documents
+  app.get("/api/cases/:caseId/documents", async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const caseId = parseInt(req.params.caseId);
+      if (isNaN(caseId)) {
+        return res.status(400).json({ message: "Invalid case ID" });
+      }
+
+      const {
+        folderId,
+        tags,
+        search,
+        page = 1,
+        limit = 50,
+        sortBy = "date",
+        sortOrder = "desc",
+        archived = false
+      } = req.query;
+
+      const options = {
+        folderId: folderId ? parseInt(folderId as string) : undefined,
+        tags: tags ? (tags as string).split(',') : undefined,
+        search: search as string,
+        page: parseInt(page as string),
+        limit: parseInt(limit as string),
+        sortBy: sortBy as "name" | "date" | "size" | "downloads",
+        sortOrder: sortOrder as "asc" | "desc",
+        archived: archived === 'true'
+      };
+
+      const result = await documentStorage.getDocumentsByCase(caseId, options);
+      
+      // Get folders and tags for the case
+      const [folders, docTags] = await Promise.all([
+        documentStorage.getDocumentFoldersByCase(caseId),
+        documentStorage.getDocumentTagsByCase(caseId)
+      ]);
+
+      res.json({
+        ...result,
+        folders,
+        tags: docTags
+      });
+    } catch (error) {
+      console.error("Document listing error:", error);
+      res.status(500).json({ message: "Failed to fetch documents" });
+    }
+  });
+
+  // Download document
+  app.get("/api/documents/:id/download", async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const documentId = parseInt(req.params.id);
+      if (isNaN(documentId)) {
+        return res.status(400).json({ message: "Invalid document ID" });
+      }
+
+      const document = await documentStorage.getDocument(documentId);
+      if (!document) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+
+      // Log download access
+      await documentStorage.logDocumentAccess({
+        documentId,
+        userId,
+        action: "download",
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent') || null
+      });
+
+      // Increment download count
+      await documentStorage.incrementDownloadCount(documentId);
+
+      // Get file from storage
+      const fileBuffer = await fileStorage.getFile(document.filePath);
+
+      res.setHeader('Content-Disposition', `attachment; filename="${document.fileName}"`);
+      res.setHeader('Content-Type', document.mimeType);
+      res.setHeader('Content-Length', document.fileSize);
+      
+      res.send(fileBuffer);
+    } catch (error) {
+      console.error("Document download error:", error);
+      res.status(500).json({ message: "Failed to download document" });
+    }
+  });
+
+  // Search documents
+  app.get("/api/cases/:caseId/documents/search", async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const caseId = parseInt(req.params.caseId);
+      if (isNaN(caseId)) {
+        return res.status(400).json({ message: "Invalid case ID" });
+      }
+
+      const { q, tags, folderId, page = 1, limit = 50 } = req.query;
+      
+      if (!q || typeof q !== 'string') {
+        return res.status(400).json({ message: "Search query required" });
+      }
+
+      const options = {
+        tags: tags ? (tags as string).split(',') : undefined,
+        folderId: folderId ? parseInt(folderId as string) : undefined,
+        page: parseInt(page as string),
+        limit: parseInt(limit as string)
+      };
+
+      const result = await documentStorage.searchDocuments(caseId, q, options);
+      res.json(result);
+    } catch (error) {
+      console.error("Document search error:", error);
+      res.status(500).json({ message: "Failed to search documents" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
