@@ -12,10 +12,11 @@ export default function Landing() {
           <div className="flex justify-between h-16">
             <div className="flex items-center">
               <img 
-                src="/fiducible-logo.png" 
+                src="/app-icon.png" 
                 alt="Fiducible" 
-                className="h-8 w-auto"
+                className="h-8 w-8"
               />
+              <span className="ml-2 text-xl font-bold text-teal-600 dark:text-teal-400">Fiducible</span>
             </div>
             <div className="flex items-center space-x-4">
               <Link href="/login">
@@ -140,10 +141,11 @@ export default function Landing() {
           <div className="flex justify-between items-center">
             <div className="flex items-center">
               <img 
-                src="/fiducible-logo.png" 
+                src="/app-icon.png" 
                 alt="Fiducible" 
-                className="h-6 w-auto"
+                className="h-8 w-8"
               />
+              <span className="ml-2 text-xl font-bold text-teal-600 dark:text-teal-400">Fiducible</span>
             </div>
             <div className="flex space-x-6 text-sm text-gray-600 dark:text-gray-400">
               <Link href="/privacy">Privacy Policy</Link>

@@ -71,8 +71,12 @@ export default function Signup() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <div className="flex items-center justify-center mb-4">
-            <Shield className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-            <span className="ml-2 text-xl font-bold">Fiducible</span>
+            <img 
+              src="/app-icon.png" 
+              alt="Fiducible" 
+              className="h-8 w-8"
+            />
+            <span className="ml-2 text-xl font-bold text-teal-600 dark:text-teal-400">Fiducible</span>
           </div>
           <CardTitle className="text-2xl text-center">Create your account</CardTitle>
           <CardDescription className="text-center">
