@@ -63,8 +63,12 @@ export class MemStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentUserId++;
     const user: User = { 
-      ...insertUser, 
       id,
+      name: insertUser.name,
+      email: insertUser.email,
+      passwordHash: insertUser.passwordHash || null,
+      role: insertUser.role || "conservator",
+      oauthProvider: insertUser.oauthProvider || null,
       createdAt: new Date()
     };
     this.users.set(id, user);
@@ -85,8 +89,13 @@ export class MemStorage implements IStorage {
   async createConservatee(insertConservatee: InsertConservatee): Promise<Conservatee> {
     const id = this.currentConservateeId++;
     const conservatee: Conservatee = { 
-      ...insertConservatee, 
       id,
+      name: insertConservatee.name,
+      conservatorId: insertConservatee.conservatorId,
+      dob: insertConservatee.dob || null,
+      contactInfo: insertConservatee.contactInfo || null,
+      caseNumber: insertConservatee.caseNumber || null,
+      notes: insertConservatee.notes || null,
       createdAt: new Date()
     };
     this.conservatees.set(id, conservatee);
@@ -126,8 +135,13 @@ export class MemStorage implements IStorage {
   async createTimeEntry(insertTimeEntry: InsertTimeEntry): Promise<TimeEntry> {
     const id = this.currentTimeEntryId++;
     const timeEntry: TimeEntry = { 
-      ...insertTimeEntry, 
       id,
+      conservatorId: insertTimeEntry.conservatorId,
+      conservateeId: insertTimeEntry.conservateeId || null,
+      date: insertTimeEntry.date,
+      taskDescription: insertTimeEntry.taskDescription,
+      memo: insertTimeEntry.memo || null,
+      timeSpent: insertTimeEntry.timeSpent,
       createdAt: new Date()
     };
     this.timeEntries.set(id, timeEntry);
