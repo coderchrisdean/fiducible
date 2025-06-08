@@ -8,21 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Shield, Loader2 } from "lucide-react";
+import { Shield, Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { signupValidationSchema } from "@shared/schema";
 
-const signupSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
-
-type SignupForm = z.infer<typeof signupSchema>;
+type SignupForm = z.infer<typeof signupValidationSchema>;
 
 export default function Signup() {
   const [, setLocation] = useLocation();
@@ -30,7 +21,8 @@ export default function Signup() {
   const queryClient = useQueryClient();
 
   const form = useForm<SignupForm>({
-    resolver: zodResolver(signupSchema),
+    resolver: zodResolver(signupValidationSchema),
+    mode: "onChange", // Enable real-time validation
     defaultValues: {
       name: "",
       email: "",
@@ -89,56 +81,103 @@ export default function Signup() {
               <FormField
                 control={form.control}
                 name="name"
-                render={({ field }) => (
+                render={({ field, fieldState }) => (
                   <FormItem>
                     <FormLabel>Full Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="John Doe" {...field} />
+                      <div className="relative">
+                        <Input 
+                          placeholder="John Doe" 
+                          {...field}
+                          className={fieldState.error ? "border-red-500" : fieldState.isDirty && !fieldState.error ? "border-green-500" : ""}
+                        />
+                        {fieldState.isDirty && !fieldState.error && (
+                          <CheckCircle className="absolute right-3 top-3 h-4 w-4 text-green-500" />
+                        )}
+                        {fieldState.error && (
+                          <AlertCircle className="absolute right-3 top-3 h-4 w-4 text-red-500" />
+                        )}
+                      </div>
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-red-500 text-sm flex items-center gap-1" />
                   </FormItem>
                 )}
               />
               <FormField
                 control={form.control}
                 name="email"
-                render={({ field }) => (
+                render={({ field, fieldState }) => (
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input
-                        type="email"
-                        placeholder="you@example.com"
-                        {...field}
-                      />
+                      <div className="relative">
+                        <Input
+                          type="email"
+                          placeholder="you@example.com"
+                          {...field}
+                          className={fieldState.error ? "border-red-500" : fieldState.isDirty && !fieldState.error ? "border-green-500" : ""}
+                        />
+                        {fieldState.isDirty && !fieldState.error && (
+                          <CheckCircle className="absolute right-3 top-3 h-4 w-4 text-green-500" />
+                        )}
+                        {fieldState.error && (
+                          <AlertCircle className="absolute right-3 top-3 h-4 w-4 text-red-500" />
+                        )}
+                      </div>
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-red-500 text-sm flex items-center gap-1" />
                   </FormItem>
                 )}
               />
               <FormField
                 control={form.control}
                 name="password"
-                render={({ field }) => (
+                render={({ field, fieldState }) => (
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input type="password" {...field} />
+                      <div className="relative">
+                        <Input 
+                          type="password" 
+                          placeholder="At least 8 characters"
+                          {...field}
+                          className={fieldState.error ? "border-red-500" : fieldState.isDirty && !fieldState.error ? "border-green-500" : ""}
+                        />
+                        {fieldState.isDirty && !fieldState.error && (
+                          <CheckCircle className="absolute right-3 top-3 h-4 w-4 text-green-500" />
+                        )}
+                        {fieldState.error && (
+                          <AlertCircle className="absolute right-3 top-3 h-4 w-4 text-red-500" />
+                        )}
+                      </div>
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-red-500 text-sm flex items-center gap-1" />
                   </FormItem>
                 )}
               />
               <FormField
                 control={form.control}
                 name="confirmPassword"
-                render={({ field }) => (
+                render={({ field, fieldState }) => (
                   <FormItem>
                     <FormLabel>Confirm Password</FormLabel>
                     <FormControl>
-                      <Input type="password" {...field} />
+                      <div className="relative">
+                        <Input 
+                          type="password" 
+                          placeholder="Repeat your password"
+                          {...field}
+                          className={fieldState.error ? "border-red-500" : fieldState.isDirty && !fieldState.error ? "border-green-500" : ""}
+                        />
+                        {fieldState.isDirty && !fieldState.error && (
+                          <CheckCircle className="absolute right-3 top-3 h-4 w-4 text-green-500" />
+                        )}
+                        {fieldState.error && (
+                          <AlertCircle className="absolute right-3 top-3 h-4 w-4 text-red-500" />
+                        )}
+                      </div>
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-red-500 text-sm flex items-center gap-1" />
                   </FormItem>
                 )}
               />

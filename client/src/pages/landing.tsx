@@ -5,25 +5,25 @@ import { Clock, Users, FileText, Shield, CheckCircle } from "lucide-react";
 
 export default function Landing() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-white">
       {/* Navigation */}
-      <nav className="bg-white dark:bg-gray-900 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
+      <nav className="bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <img 
-                src="/app-icon.png" 
+                src="/fiducible-logo.png" 
                 alt="Fiducible" 
                 className="h-8 w-8"
               />
-              <span className="ml-2 text-xl font-bold text-teal-600 dark:text-teal-400">Fiducible</span>
+              <span className="ml-3 text-xl font-semibold text-gray-900">Fiducible</span>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
               <Link href="/login">
-                <Button variant="ghost">Sign In</Button>
+                <Button variant="ghost" className="text-gray-600 hover:text-gray-900 rounded-xl">Sign In</Button>
               </Link>
               <Link href="/signup">
-                <Button>Get Started</Button>
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-6 shadow-sm">Get Started</Button>
               </Link>
             </div>
           </div>
@@ -31,26 +31,24 @@ export default function Landing() {
       </nav>
 
       {/* Hero Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
+      <div className="max-w-4xl mx-auto px-6 pt-24 pb-20">
         <div className="text-center">
-          <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl">
-            Streamline Your
-            <span className="text-blue-600 dark:text-blue-400"> Fiduciary </span>
-            Management
+          <h1 className="text-5xl font-semibold tracking-tight text-gray-900 sm:text-6xl leading-tight">
+            Professional Fiduciary
+            <br />
+            <span className="text-blue-600">Management</span>
           </h1>
-          <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-            Track time, manage conservatees, and maintain detailed records with our comprehensive 
-            fiduciary management platform. Built for conservators who need reliable, 
-            professional documentation.
+          <p className="mt-8 text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+            Track time, manage conservatees, and maintain detailed records with precision and simplicity.
           </p>
-          <div className="mt-10 flex items-center justify-center gap-x-6">
+          <div className="mt-12 flex items-center justify-center gap-4">
             <Link href="/signup">
-              <Button size="lg" className="px-8 py-3">
-                Start Free Trial
+              <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-8 py-4 text-lg font-medium shadow-sm">
+                Get Started
               </Button>
             </Link>
             <Link href="#features">
-              <Button variant="outline" size="lg" className="px-8 py-3">
+              <Button variant="outline" className="border-gray-300 text-gray-700 hover:bg-gray-50 rounded-xl px-8 py-4 text-lg">
                 Learn More
               </Button>
             </Link>
@@ -59,57 +57,65 @@ export default function Landing() {
       </div>
 
       {/* Features Section */}
-      <div id="features" className="py-24 bg-white dark:bg-gray-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
-              Everything you need to manage fiduciary responsibilities
+      <div id="features" className="py-20 bg-gray-50">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-semibold text-gray-900 sm:text-4xl mb-4">
+              Built for Professionals
             </h2>
-            <p className="mt-4 text-lg text-gray-600 dark:text-gray-300">
-              Professional tools designed specifically for fiduciaries
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Essential tools for fiduciary management, designed with simplicity and precision
             </p>
           </div>
 
-          <div className="mt-20 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader>
-                <Clock className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-                <CardTitle>Time Tracking</CardTitle>
-                <CardDescription>
-                  Precise time tracking with 6-minute increments for accurate billing and reporting
-                </CardDescription>
-              </CardHeader>
-            </Card>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
+            <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                  <Clock className="h-6 w-6 text-blue-600" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 ml-4">Time Tracking</h3>
+              </div>
+              <p className="text-gray-600 leading-relaxed">
+                Precise time tracking with 6-minute increments for accurate billing and professional reporting
+              </p>
+            </div>
 
-            <Card>
-              <CardHeader>
-                <Users className="h-8 w-8 text-green-600 dark:text-green-400" />
-                <CardTitle>Conservatee Management</CardTitle>
-                <CardDescription>
-                  Organize and track all conservatee information, case numbers, and contact details
-                </CardDescription>
-              </CardHeader>
-            </Card>
+            <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                  <Users className="h-6 w-6 text-green-600" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 ml-4">Conservatee Management</h3>
+              </div>
+              <p className="text-gray-600 leading-relaxed">
+                Organize and track all conservatee information, case numbers, and contact details in one place
+              </p>
+            </div>
 
-            <Card>
-              <CardHeader>
-                <FileText className="h-8 w-8 text-purple-600 dark:text-purple-400" />
-                <CardTitle>Documentation</CardTitle>
-                <CardDescription>
-                  Maintain detailed records with memos and task descriptions for every activity
-                </CardDescription>
-              </CardHeader>
-            </Card>
+            <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                  <FileText className="h-6 w-6 text-purple-600" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 ml-4">Documentation</h3>
+              </div>
+              <p className="text-gray-600 leading-relaxed">
+                Maintain detailed records with memos and task descriptions for every activity and interaction
+              </p>
+            </div>
 
-            <Card>
-              <CardHeader>
-                <CheckCircle className="h-8 w-8 text-orange-600 dark:text-orange-400" />
-                <CardTitle>Compliance Ready</CardTitle>
-                <CardDescription>
-                  Generate reports and maintain records that meet legal and regulatory requirements
-                </CardDescription>
-              </CardHeader>
-            </Card>
+            <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
+                  <CheckCircle className="h-6 w-6 text-orange-600" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 ml-4">Compliance Ready</h3>
+              </div>
+              <p className="text-gray-600 leading-relaxed">
+                Generate reports and maintain records that meet legal and regulatory requirements
+              </p>
+            </div>
           </div>
         </div>
       </div>
