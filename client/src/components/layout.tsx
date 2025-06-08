@@ -41,10 +41,11 @@ export function Layout({ children }: LayoutProps) {
             <div className="flex items-center">
               <Link href="/dashboard">
                 <div className="flex items-center">
-                  <Shield className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-                  <span className="ml-2 text-xl font-bold text-gray-900 dark:text-white">
-                    Fiducible
-                  </span>
+                  <img 
+                    src="/fiducible-logo.png" 
+                    alt="Fiducible" 
+                    className="h-8 w-auto"
+                  />
                 </div>
               </Link>
             </div>
@@ -86,9 +87,9 @@ export function Layout({ children }: LayoutProps) {
                 <DropdownMenuContent className="w-56" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{user?.name}</p>
+                      <p className="text-sm font-medium leading-none">{user?.name || "User"}</p>
                       <p className="text-xs leading-none text-muted-foreground">
-                        {user?.email}
+                        {user?.email || ""}
                       </p>
                     </div>
                   </DropdownMenuLabel>

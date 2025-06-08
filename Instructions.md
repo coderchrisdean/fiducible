@@ -1,87 +1,164 @@
-# Instructions.md - Fiducible App Rebranding & Updates
+# Fiducible Development Instructions
 
-## Overview
-This document outlines the rebranding from "Conservatorship Management Web App" to "Fiducible" and updates to time-tracking specifications.
+## Project Overview
 
-## Checkpoint 1: Core Branding Updates (15 minutes)
-**Effort:** Low
-**Priority:** High
+**App:** Fiducible  
+**Purpose:** A comprehensive fiduciary management application for tracking conservatorship workflows, time entries, and case management.
 
-### Frontend Components to Update:
-- [x] `client/src/pages/landing.tsx` - Hero section title, app name in navigation
-- [x] `client/src/pages/login.tsx` - App logo and branding text
-- [x] `client/src/pages/signup.tsx` - App logo and branding text
-- [x] `client/src/components/layout.tsx` - Navigation header branding
+## Technology Stack
 
-### Text Replacements:
-- "ConserveTrack" → "Fiducible"
-- "Conservatorship Management" → "Fiduciary Management" 
-- "conservatorship management platform" → "fiduciary management platform"
+- **Frontend**: React with TypeScript, Vite build system
+- **Backend**: Express.js with Node.js
+- **Database**: PostgreSQL with Drizzle ORM
+- **UI Framework**: Shadcn/ui components with Tailwind CSS
+- **Authentication**: Passport.js with local strategy
+- **State Management**: TanStack Query for server state, React hooks for local state
 
-## Checkpoint 2: Time Tracking Logic Updates (20 minutes)
-**Effort:** Medium
-**Priority:** High
+## Architecture Guidelines
 
-### Files to Modify:
-- [x] `client/src/pages/time-tracking.tsx`
-  - Updated `roundToSixMinutes` function from 1/6 hour to 0.1 hour increments
-  - Changed step value to 0.1 in time input
-  - Updated minimum value to 0.1 (6 minutes)
-  - Updated placeholder and helper text
+### Frontend Structure
+- Put maximum functionality in the frontend
+- Backend handles only data persistence and API calls
+- Use React Query for all server state management
+- Implement proper loading states and error handling
 
-### Logic Changes:
-- **Old:** `Math.round(hours * 6) / 6` (rounds to 10-minute increments as 0.1667h)
-- **New:** `Math.round(hours * 10) / 10` (rounds to 6-minute increments as 0.1h)
-- **Minimum Entry:** 0.1 hours (6 minutes)
+### Data Model First Approach
+1. Always define schemas in `shared/schema.ts` first
+2. Use Drizzle ORM with PostgreSQL tables
+3. Generate insert/select types with `drizzle-zod`
+4. Keep data models simple - avoid unnecessary timestamp fields
 
-## Checkpoint 3: Documentation & Comments (10 minutes)
-**Effort:** Low
-**Priority:** Medium
+### Storage Interface
+- Prefer in-memory storage (MemStorage) unless database is specifically required
+- Update `IStorage` interface in `server/storage.ts` for new CRUD operations
+- Ensure storage methods use proper types from `shared/schema.ts`
 
-### Code Comments to Update:
-- [ ] Time tracking utility function comments
-- [ ] Form validation messages
-- [ ] Component descriptions mentioning old increment logic
+## Key Features Implemented
 
-### Documentation Files:
-- [ ] Update any inline comments referencing "1/6th hour" or "0.1667"
-- [ ] Update form helper text and validation messages
+### 1. Authentication System
+- User registration and login
+- Session management with Passport.js
+- Protected routes with authentication middleware
 
-## Checkpoint 4: Validation & Testing (15 minutes)
-**Effort:** Low
-**Priority:** Medium
+### 2. Dashboard
+- Overview of conservatee cases
+- Recent activity summaries
+- Quick navigation to key features
 
-### Verification Steps:
-- [ ] Test time entry form with new minimum values
-- [ ] Verify rounding logic works correctly
-- [ ] Check all branding appears consistently
-- [ ] Validate form submissions work with new time increments
+### 3. Time Tracking
+- Record time entries for conservatee work
+- Edit and manage existing entries
+- Associate time with specific conservatees
 
-## Implementation Order
-1. **Checkpoint 1** ✅ - Updated all branding elements for visual consistency
-2. **Checkpoint 2** ✅ - Modified time tracking logic and validation  
-3. **Checkpoint 3** ✅ - Cleaned up documentation and comments
-4. **Checkpoint 4** ✅ - Tested functionality end-to-end
+### 4. Conservatee Management
+- Add new conservatee profiles
+- Edit existing conservatee information
+- View conservatee details and associated time entries
 
-## Total Actual Effort: 45 minutes (under estimate)
+### 5. Responsive Design
+- Mobile-friendly interface
+- Consistent styling with Tailwind CSS
+- Professional UI with Shadcn components
 
-## Key Changes Summary
-- **App Name:** "ConserveTrack" → "Fiducible"
-- **Time Increments:** 0.1667h (10-minute) → 0.1h (6-minute) minimum
-- **Rounding Logic:** 1/6 hour precision → 1/10 hour precision
-- **Branding Consistency:** All references updated across the application
+## Brand Assets
 
-## Files Requiring Updates
-- Planning.md ✅ (completed)
-- client/src/pages/landing.tsx
-- client/src/pages/login.tsx  
-- client/src/pages/signup.tsx
-- client/src/components/layout.tsx
-- client/src/pages/time-tracking.tsx
+### Logo Integration
+- **Location**: `/public/fiducible-logo.png`
+- **Design**: Shield with checkmark, transparent background
+- **Usage**: Reference as `/fiducible-logo.png` in components
 
-## Success Criteria
-- All "ConserveTrack" references replaced with "Fiducible"
-- Time tracking accepts minimum 6-minute entries
-- Rounding logic uses 0.1-hour increments
-- Application maintains full functionality
-- No broken links or validation errors
+### Logo Replacement Process
+1. Add new logo file to `/public/` directory
+2. Update filename references in components if needed
+3. Test across light/dark themes and screen sizes
+4. Ensure proper contrast and readability
+
+### Logo Specifications
+- **Format**: PNG with transparency or SVG preferred
+- **Minimum Width**: 200px for crisp display
+- **Spacing**: Maintain 20px minimum padding around logo
+- **Consistency**: Use same logo across all application pages
+
+## Development Workflow
+
+### Database Changes
+1. Update schema in `shared/schema.ts`
+2. Modify storage interface in `server/storage.ts`
+3. Run `npm run db:push` to apply changes
+4. Never write manual SQL migrations
+
+### Frontend Components
+- Use Wouter for routing (`client/src/App.tsx`)
+- Store pages in `client/src/pages/` directory
+- Use `react-hook-form` with `zodResolver` for forms
+- Implement proper error states and loading indicators
+
+### API Development
+- Define routes in `server/routes.ts`
+- Keep route handlers thin - delegate to storage interface
+- Validate request bodies with Zod schemas
+- Use proper HTTP status codes and error responses
+
+### Styling Guidelines
+- Primary framework: Tailwind CSS
+- Component library: Shadcn/ui
+- Icons: Lucide React for actions, React Icons for logos
+- Dark mode support with explicit light/dark variants
+
+## File Organization
+
+```
+/client/src/
+  /components/    # Reusable UI components
+  /pages/         # Page-level views
+  /hooks/         # Custom React hooks
+  /lib/           # Utilities and configurations
+
+/server/
+  index.ts        # Express server setup
+  routes.ts       # API route definitions
+  storage.ts      # Data storage interface
+  db.ts           # Database connection
+
+/shared/
+  schema.ts       # Database schemas and types
+
+/public/
+  fiducible-logo.png  # Application logo
+```
+
+## Quality Standards
+
+### Code Quality
+- Use TypeScript for type safety
+- Implement proper error handling
+- Write descriptive variable and function names
+- Keep functions focused and single-purpose
+
+### User Experience
+- Provide immediate feedback for user actions
+- Show loading states during async operations
+- Display clear error messages with actionable guidance
+- Ensure consistent navigation and layout
+
+### Performance
+- Optimize query keys for efficient cache invalidation
+- Use React Query for server state management
+- Implement proper form validation
+- Minimize unnecessary re-renders
+
+## Security Considerations
+
+- Never expose sensitive data in frontend code
+- Use secure session management
+- Validate all user inputs on both client and server
+- Implement proper authentication checks on protected routes
+
+## Future Enhancement Areas
+
+- Document management system
+- Financial tracking and reporting
+- Visit logging and scheduling
+- Medication management
+- Audit trails and compliance reporting
+- Multi-user collaboration features
