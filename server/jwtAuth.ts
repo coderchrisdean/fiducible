@@ -54,7 +54,7 @@ export function verifyToken(token: string) {
 }
 
 export const authenticateToken = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
@@ -70,7 +70,7 @@ export const authenticateToken = async (
     return res.status(403).json({ message: "Invalid or expired token" });
   }
 
-  req.user = decoded;
+  (req as any).user = decoded;
   next();
 };
 
@@ -179,7 +179,7 @@ export async function setupJWTAuth(app: Express) {
   });
 
   // Get current user route
-  app.get("/api/user", authenticateToken as any, async (req: AuthenticatedRequest, res: Response) => {
+  app.get("/api/user", authenticateToken, async (req: any, res: Response) => {
     try {
       const user = await storage.getUser(req.user!.id);
       if (!user) {

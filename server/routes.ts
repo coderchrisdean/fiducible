@@ -187,7 +187,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Dashboard routes - user-specific data
-  app.get("/api/dashboard/stats", authenticateToken as any, async (req: AuthenticatedRequest, res) => {
+  app.get("/api/dashboard/stats", authenticateToken, async (req: any, res) => {
     try {
       const userId = req.user!.id;
       console.log(`[API] [DASHBOARD_STATS] Loading dashboard stats for user ${userId}`);
@@ -231,7 +231,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/dashboard/recent-entries", authenticateToken as any, async (req: AuthenticatedRequest, res) => {
+  app.get("/api/dashboard/recent-entries", authenticateToken, async (req: any, res) => {
     try {
       const userId = req.user!.id;
       const limit = parseInt(req.query.limit as string) || 5;
@@ -253,7 +253,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Time entry routes
-  app.get("/api/time-entries", authenticateToken as any, async (req: AuthenticatedRequest, res) => {
+  app.get("/api/time-entries", authenticateToken, async (req: any, res) => {
     console.log('[API] [GET_TIME_ENTRIES] [' + new Date().toISOString() + '] Request received');
     try {
       const userId = req.user!.id;
