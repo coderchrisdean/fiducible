@@ -650,7 +650,6 @@ export class MemStorage implements IStorage {
       filePath: insertDocument.filePath,
       fileSize: insertDocument.fileSize ?? null,
       mimeType: insertDocument.mimeType || '',
-      searchText: null,
       searchVector: null,
       downloadCount: 0,
       isArchived: false,

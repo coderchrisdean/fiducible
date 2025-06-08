@@ -1,0 +1,6 @@
+Starting Fiducible server...
+6:31:23 PM [express] serving on port 5000
+Server ready at http://0.0.0.0:5000
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
