@@ -8,10 +8,17 @@ import {
   insertEmailVerificationSchema,
   insertCaseSchema,
   insertCaseInvitationSchema,
-  insertUserCaseRoleSchema
+  insertUserCaseRoleSchema,
+  documents,
+  documentAccess
 } from "@shared/schema";
 import bcrypt from "bcrypt";
 import { emailService } from "./emailService";
+import { db } from "./db";
+import { eq, and, or, ilike } from "drizzle-orm";
+import { isAuthenticated } from "./replitAuth";
+import { documentStorage } from "./documentStorage";
+import { fileStorage, upload } from "./fileStorage";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
@@ -584,14 +591,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Generate search text
         const searchVector = generateSearchText(file.originalname, file.mimetype);
 
-        // Create document record
+        // Create document record with structured path
+        const structuredPath = `uploads/${userId}/${caseId}/${Date.now()}_${file.originalname}`;
+        
         const documentData = {
           caseId,
-          uploadedBy: userId,
+          ownerId: userId,
           title: file.originalname,
-          description: description || null,
           fileName: file.originalname,
-          filePath,
+          filePath: structuredPath,
+          description: description || null,
           fileSize: file.size,
           mimeType: file.mimetype,
           folderId: folderId ? parseInt(folderId) : null,
@@ -601,6 +610,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
 
         const document = await documentStorage.createDocument(documentData);
+        console.log(`[DocumentUpload] [UPLOAD_SUCCESS] ownerId: ${userId}, caseId: ${caseId}, documentId: ${document.id}`);
         console.log('[API] [UPLOAD_DOCUMENTS] [' + new Date().toISOString() + '] Successfully created document with ID:', document.id);
         uploadedDocuments.push(document);
       }
@@ -761,6 +771,244 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const result = await documentStorage.searchDocuments(caseId, q, options);
       res.json(result);
+    } catch (error) {
+      console.error("Document search error:", error);
+      res.status(500).json({ message: "Failed to search documents" });
+    }
+  });
+
+  // New Document Management Routes with Access Control
+
+  // GET /documents - List documents where user is owner or has access
+  app.get("/api/documents", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const { caseId } = req.query;
+
+      if (!caseId) {
+        return res.status(400).json({ message: "Case ID is required" });
+      }
+
+      // Get documents where user is owner or has granted access
+      const [ownedDocs, accessibleDocs] = await Promise.all([
+        db.select().from(documents).where(
+          and(eq(documents.ownerId, userId), eq(documents.caseId, parseInt(caseId as string)))
+        ),
+        db.select({
+          id: documents.id,
+          ownerId: documents.ownerId,
+          caseId: documents.caseId,
+          title: documents.title,
+          fileName: documents.fileName,
+          filePath: documents.filePath,
+          uploadedAt: documents.uploadedAt,
+          fileSize: documents.fileSize,
+          mimeType: documents.mimeType,
+        }).from(documents)
+          .innerJoin(documentAccess, eq(documents.id, documentAccess.documentId))
+          .where(
+            and(
+              eq(documentAccess.userId, userId),
+              eq(documents.caseId, parseInt(caseId as string))
+            )
+          )
+      ]);
+
+      const allDocuments = [...ownedDocs, ...accessibleDocs];
+      res.json({ documents: allDocuments });
+    } catch (error) {
+      console.error("Get documents error:", error);
+      res.status(500).json({ message: "Failed to get documents" });
+    }
+  });
+
+  // POST /documents/upload - Upload document with structured path
+  app.post("/api/documents/upload", isAuthenticated, upload.array('files', 10), async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const { caseId, title } = req.body;
+      const files = req.files as Express.Multer.File[];
+
+      if (!files || files.length === 0) {
+        return res.status(400).json({ message: "No files provided" });
+      }
+
+      if (!caseId) {
+        return res.status(400).json({ message: "Case ID is required" });
+      }
+
+      const uploadedDocuments = [];
+
+      for (const file of files) {
+        // Create structured file path
+        const documentId = Date.now() + Math.random().toString(36).substr(2, 9);
+        const structuredPath = `uploads/${userId}/${caseId}/${documentId}`;
+        
+        // Save file with structured path
+        const filePath = await fileStorage.saveFile(file.buffer, file.originalname, file.mimetype);
+        
+        // Create document record
+        const documentData = {
+          ownerId: userId,
+          caseId: parseInt(caseId),
+          title: title || file.originalname,
+          fileName: file.originalname,
+          filePath: structuredPath,
+          fileSize: file.size,
+          mimeType: file.mimetype,
+        };
+
+        const [document] = await db.insert(documents).values(documentData).returning();
+        console.log(`[DocumentUpload] [UPLOAD_SUCCESS] ownerId: ${userId}, caseId: ${caseId}, documentId: ${document.id}`);
+        uploadedDocuments.push(document);
+      }
+
+      res.json({
+        documents: uploadedDocuments,
+        message: `${uploadedDocuments.length} file(s) uploaded successfully`
+      });
+    } catch (error) {
+      console.error("Document upload error:", error);
+      res.status(500).json({ message: "Failed to upload documents" });
+    }
+  });
+
+  // POST /documents/:id/grant-access - Grant access to document
+  app.post("/api/documents/:id/grant-access", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const documentId = parseInt(req.params.id);
+      const { userId: targetUserId } = req.body;
+
+      if (!targetUserId) {
+        return res.status(400).json({ message: "Target user ID is required" });
+      }
+
+      // Verify user owns the document
+      const [document] = await db.select().from(documents)
+        .where(and(eq(documents.id, documentId), eq(documents.ownerId, userId)));
+
+      if (!document) {
+        return res.status(404).json({ message: "Document not found or access denied" });
+      }
+
+      // Check if access already exists
+      const existingAccess = await db.select().from(documentAccess)
+        .where(and(eq(documentAccess.documentId, documentId), eq(documentAccess.userId, targetUserId)));
+
+      if (existingAccess.length > 0) {
+        return res.status(400).json({ message: "Access already granted" });
+      }
+
+      // Grant access
+      await db.insert(documentAccess).values({
+        documentId,
+        userId: targetUserId
+      });
+
+      console.log(`[DocumentAccess] [GRANT_ACCESS] documentId: ${documentId}, grantedTo: ${targetUserId}, grantedBy: ${userId}`);
+      res.json({ message: "Access granted successfully" });
+    } catch (error) {
+      console.error("Grant access error:", error);
+      res.status(500).json({ message: "Failed to grant access" });
+    }
+  });
+
+  // POST /documents/:id/revoke-access - Revoke access to document
+  app.post("/api/documents/:id/revoke-access", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const documentId = parseInt(req.params.id);
+      const { userId: targetUserId } = req.body;
+
+      if (!targetUserId) {
+        return res.status(400).json({ message: "Target user ID is required" });
+      }
+
+      // Verify user owns the document
+      const [document] = await db.select().from(documents)
+        .where(and(eq(documents.id, documentId), eq(documents.ownerId, userId)));
+
+      if (!document) {
+        return res.status(404).json({ message: "Document not found or access denied" });
+      }
+
+      // Revoke access
+      await db.delete(documentAccess)
+        .where(and(eq(documentAccess.documentId, documentId), eq(documentAccess.userId, targetUserId)));
+
+      console.log(`[DocumentAccess] [REVOKE_ACCESS] documentId: ${documentId}, revokedFrom: ${targetUserId}, revokedBy: ${userId}`);
+      res.json({ message: "Access revoked successfully" });
+    } catch (error) {
+      console.error("Revoke access error:", error);
+      res.status(500).json({ message: "Failed to revoke access" });
+    }
+  });
+
+  // GET /documents/:id/download - Download document with access validation
+  app.get("/api/documents/:id/download", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const documentId = parseInt(req.params.id);
+
+      // Check if user owns document or has access
+      const [document] = await db.select().from(documents)
+        .leftJoin(documentAccess, eq(documents.id, documentAccess.documentId))
+        .where(
+          and(
+            eq(documents.id, documentId),
+            or(
+              eq(documents.ownerId, userId),
+              eq(documentAccess.userId, userId)
+            )
+          )
+        );
+
+      if (!document) {
+        return res.status(404).json({ message: "Document not found or access denied" });
+      }
+
+      // Get file from storage
+      const fileBuffer = await fileStorage.getFile(document.documents.filePath);
+      
+      // Log download access
+      console.log(`[DocumentDownload] [ACCESS_LOG] documentId: ${documentId}, userId: ${userId}, ownerId: ${document.documents.ownerId}`);
+
+      // Set headers and send file
+      res.setHeader('Content-Type', document.documents.mimeType || 'application/octet-stream');
+      res.setHeader('Content-Disposition', `attachment; filename="${document.documents.fileName}"`);
+      res.send(fileBuffer);
+    } catch (error) {
+      console.error("Document download error:", error);
+      res.status(500).json({ message: "Failed to download document" });
+    }
+  });
+
+  // GET /documents/search - Search documents within accessible scope
+  app.get("/api/documents/search", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const { query, caseId } = req.query;
+
+      if (!query || !caseId) {
+        return res.status(400).json({ message: "Query and case ID are required" });
+      }
+
+      // Search in documents where user is owner or has access
+      const searchResults = await db.select().from(documents)
+        .leftJoin(documentAccess, eq(documents.id, documentAccess.documentId))
+        .where(
+          and(
+            eq(documents.caseId, parseInt(caseId as string)),
+            ilike(documents.title, `%${query}%`),
+            or(
+              eq(documents.ownerId, userId),
+              eq(documentAccess.userId, userId)
+            )
+          )
+        );
+
+      res.json({ documents: searchResults.map(r => r.documents) });
     } catch (error) {
       console.error("Document search error:", error);
       res.status(500).json({ message: "Failed to search documents" });
