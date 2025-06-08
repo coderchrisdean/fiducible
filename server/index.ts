@@ -73,8 +73,14 @@ app.use((req, res, next) => {
     // It is the only port that is not firewalled.
     const port = Number(process.env.PORT) || 5000;
     const host = "0.0.0.0";
+    
+    server.on('error', (err) => {
+      console.error('Server error:', err);
+    });
+    
     server.listen(port, host, () => {
       log(`serving on port ${port}`);
+      console.log(`Server ready at http://${host}:${port}`);
     });
   } catch (error) {
     console.error("Failed to start server:", error);
