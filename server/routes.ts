@@ -98,8 +98,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/conservatees/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const updateData = req.body;
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid conservatee ID" });
+      }
       
+      const updateData = req.body;
       const conservatee = await storage.updateConservatee(id, updateData);
       if (!conservatee) {
         return res.status(404).json({ message: "Conservatee not found" });
@@ -107,6 +110,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(conservatee);
     } catch (error) {
+      console.error("Update conservatee error:", error);
       res.status(400).json({ message: "Invalid update data" });
     }
   });
@@ -114,14 +118,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/conservatees/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const deleted = await storage.deleteConservatee(id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid conservatee ID" });
+      }
       
+      const deleted = await storage.deleteConservatee(id);
       if (!deleted) {
         return res.status(404).json({ message: "Conservatee not found" });
       }
       
       res.json({ message: "Conservatee deleted" });
     } catch (error) {
+      console.error("Delete conservatee error:", error);
       res.status(500).json({ message: "Server error" });
     }
   });
@@ -155,8 +163,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/time-entries/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const updateData = req.body;
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid time entry ID" });
+      }
       
+      const updateData = req.body;
       const timeEntry = await storage.updateTimeEntry(id, updateData);
       if (!timeEntry) {
         return res.status(404).json({ message: "Time entry not found" });
@@ -164,6 +175,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(timeEntry);
     } catch (error) {
+      console.error("Update time entry error:", error);
       res.status(400).json({ message: "Invalid update data" });
     }
   });
@@ -171,14 +183,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/time-entries/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const deleted = await storage.deleteTimeEntry(id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid time entry ID" });
+      }
       
+      const deleted = await storage.deleteTimeEntry(id);
       if (!deleted) {
         return res.status(404).json({ message: "Time entry not found" });
       }
       
       res.json({ message: "Time entry deleted" });
     } catch (error) {
+      console.error("Delete time entry error:", error);
       res.status(500).json({ message: "Server error" });
     }
   });
