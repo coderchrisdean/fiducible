@@ -79,12 +79,9 @@ export const emailVerificationsRelations = relations(emailVerifications, ({ one 
 }));
 
 // Insert schemas
-export const insertUserSchema = createInsertSchema(users).pick({
-  name: true,
-  email: true,
-  passwordHash: true,
-  role: true,
-  oauthProvider: true,
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
 });
 
 // Enhanced validation schema for signup form

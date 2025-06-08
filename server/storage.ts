@@ -91,6 +91,15 @@ export class MemStorage implements IStorage {
     return user;
   }
 
+  async updateUser(id: number, updateData: Partial<InsertUser>): Promise<User | undefined> {
+    const existing = this.users.get(id);
+    if (!existing) return undefined;
+
+    const updated: User = { ...existing, ...updateData };
+    this.users.set(id, updated);
+    return updated;
+  }
+
   // Conservatee methods
   async getConservatee(id: number): Promise<Conservatee | undefined> {
     return this.conservatees.get(id);
@@ -175,6 +184,46 @@ export class MemStorage implements IStorage {
 
   async deleteTimeEntry(id: number): Promise<boolean> {
     return this.timeEntries.delete(id);
+  }
+
+  // Email verification methods
+  async getEmailVerification(token: string): Promise<EmailVerification | undefined> {
+    return Array.from(this.emailVerifications.values()).find(
+      (verification) => verification.token === token,
+    );
+  }
+
+  async getEmailVerificationByUserId(userId: number): Promise<EmailVerification | undefined> {
+    return Array.from(this.emailVerifications.values()).find(
+      (verification) => verification.userId === userId,
+    );
+  }
+
+  async createEmailVerification(insertVerification: InsertEmailVerification): Promise<EmailVerification> {
+    const id = this.currentEmailVerificationId++;
+    const verification: EmailVerification = {
+      id,
+      userId: insertVerification.userId,
+      token: insertVerification.token,
+      expiresAt: insertVerification.expiresAt,
+      verified: insertVerification.verified || false,
+      createdAt: new Date()
+    };
+    this.emailVerifications.set(id, verification);
+    return verification;
+  }
+
+  async updateEmailVerification(id: number, updateData: Partial<InsertEmailVerification>): Promise<EmailVerification | undefined> {
+    const existing = this.emailVerifications.get(id);
+    if (!existing) return undefined;
+
+    const updated: EmailVerification = { ...existing, ...updateData };
+    this.emailVerifications.set(id, updated);
+    return updated;
+  }
+
+  async deleteEmailVerification(id: number): Promise<boolean> {
+    return this.emailVerifications.delete(id);
   }
 }
 
