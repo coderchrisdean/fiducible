@@ -63,7 +63,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="text-3xl font-semibold text-gray-900 mb-1">
-            {conservateesLoading ? <Skeleton className="h-8 w-12" /> : totalConservatees}
+            {statsLoading ? <Skeleton className="h-8 w-12" /> : dashboardStats?.activeConservatees || 0}
           </div>
           <p className="text-sm text-gray-600">Active conservatees</p>
         </div>
@@ -75,7 +75,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="text-3xl font-semibold text-gray-900 mb-1">
-            {timeEntriesLoading ? <Skeleton className="h-8 w-16" /> : totalHoursThisWeek.toFixed(1)}
+            {statsLoading ? <Skeleton className="h-8 w-16" /> : (dashboardStats?.hoursThisWeek || 0).toFixed(1)}
           </div>
           <p className="text-sm text-gray-600">Hours this week</p>
         </div>
@@ -87,7 +87,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="text-3xl font-semibold text-gray-900 mb-1">
-            {timeEntriesLoading ? <Skeleton className="h-8 w-12" /> : timeEntries?.length || 0}
+            {statsLoading ? <Skeleton className="h-8 w-12" /> : dashboardStats?.totalEntries || 0}
           </div>
           <p className="text-sm text-gray-600">Total entries</p>
         </div>
@@ -99,7 +99,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="text-3xl font-semibold text-gray-900 mb-1">
-            {timeEntriesLoading ? <Skeleton className="h-8 w-16" /> : (totalHoursThisWeek / 7).toFixed(1)}
+            {statsLoading ? <Skeleton className="h-8 w-16" /> : (dashboardStats?.dailyAverage || 0).toFixed(1)}
           </div>
           <p className="text-sm text-gray-600">Daily average</p>
         </div>
@@ -113,7 +113,7 @@ export default function Dashboard() {
             <CardDescription>Your most recent conservatorship activities</CardDescription>
           </CardHeader>
           <CardContent>
-            {timeEntriesLoading ? (
+            {entriesLoading ? (
               <div className="space-y-3">
                 {[...Array(5)].map((_, i) => (
                   <div key={i} className="flex items-center space-x-4">

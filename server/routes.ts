@@ -187,7 +187,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Dashboard routes - user-specific data
-  app.get("/api/dashboard/stats", authenticateToken, async (req: AuthenticatedRequest, res) => {
+  app.get("/api/dashboard/stats", authenticateToken as any, async (req: AuthenticatedRequest, res) => {
     try {
       const userId = req.user!.id;
       console.log(`[API] [DASHBOARD_STATS] Loading dashboard stats for user ${userId}`);
@@ -208,7 +208,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const thisWeekEntries = timeEntries.filter(entry => 
         new Date(entry.date) >= oneWeekAgo
       );
-      const hoursThisWeek = thisWeekEntries.reduce((total, entry) => total + entry.hours, 0);
+      const hoursThisWeek = thisWeekEntries.reduce((total, entry) => total + parseFloat(entry.timeSpent), 0);
       
       // Calculate daily average (last 30 days)
       const thirtyDaysAgo = new Date();
@@ -216,7 +216,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const recentEntries = timeEntries.filter(entry => 
         new Date(entry.date) >= thirtyDaysAgo
       );
-      const totalRecentHours = recentEntries.reduce((total, entry) => total + entry.hours, 0);
+      const totalRecentHours = recentEntries.reduce((total, entry) => total + parseFloat(entry.timeSpent), 0);
       const dailyAverage = recentEntries.length > 0 ? totalRecentHours / 30 : 0;
       
       res.json({
@@ -231,7 +231,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/dashboard/recent-entries", authenticateToken, async (req: AuthenticatedRequest, res) => {
+  app.get("/api/dashboard/recent-entries", authenticateToken as any, async (req: AuthenticatedRequest, res) => {
     try {
       const userId = req.user!.id;
       const limit = parseInt(req.query.limit as string) || 5;
@@ -253,7 +253,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Time entry routes
-  app.get("/api/time-entries", authenticateToken, async (req: AuthenticatedRequest, res) => {
+  app.get("/api/time-entries", authenticateToken as any, async (req: AuthenticatedRequest, res) => {
     console.log('[API] [GET_TIME_ENTRIES] [' + new Date().toISOString() + '] Request received');
     try {
       const userId = req.user!.id;
