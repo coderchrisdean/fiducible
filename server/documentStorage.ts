@@ -78,8 +78,7 @@ export class DocumentStorage {
     }
 
     // Execute queries
-    const baseQuery = db.select().from(documents).where(whereClause);
-    query = baseQuery.orderBy(orderByClause).limit(limit).offset(offset);
+    query = db.select().from(documents).where(whereClause).orderBy(orderByClause).limit(limit).offset(offset);
     countQuery = db.select({ count: count() }).from(documents).where(whereClause);
 
     const [documentsResult, countResult] = await Promise.all([

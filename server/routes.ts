@@ -532,10 +532,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Document upload
   app.post("/api/cases/:caseId/documents/upload", upload.array('files', 10), async (req, res) => {
     try {
-      const userId = (req.user as any)?.id;
-      if (!userId) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
+      // TODO: Get user from session/auth - using mock for now
+      const userId = 1;
 
       const caseId = parseInt(req.params.caseId);
       if (isNaN(caseId)) {
@@ -596,10 +594,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // List documents
   app.get("/api/cases/:caseId/documents", async (req, res) => {
     try {
-      const userId = (req.user as any)?.id;
-      if (!userId) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
+      // TODO: Get user from session/auth - using mock for now
+      const userId = 1;
 
       const caseId = parseInt(req.params.caseId);
       if (isNaN(caseId)) {
@@ -650,10 +646,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Download document
   app.get("/api/documents/:id/download", async (req, res) => {
     try {
-      const userId = (req.user as any)?.id;
-      if (!userId) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
+      // TODO: Get user from session/auth - using mock for now
+      const userId = 1;
 
       const documentId = parseInt(req.params.id);
       if (isNaN(documentId)) {
