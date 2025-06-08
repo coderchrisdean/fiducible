@@ -23,16 +23,24 @@
   - Frontend verification page and resend UI components
   - Rate limiting and error handling
 
-### 🔄 User Profiles & Invitations
-- **Status**: In Progress
+### ✅ User Profiles & Invitations
+- **Status**: Completed
 - **Description**: Global role system and case-based role management with invitation system
 - **Features**:
   - Global role system (admin, conservator, attorney, observer)
   - Case-based role management with granular permissions
   - Invitation system for case collaboration
-  - Profile management interface
+  - Profile management interface with tabbed sections
   - Role-based navigation and feature visibility
+  - Case invitation emails with 7-day expiration
 - **Estimated effort**: 12-15 hours
+- **Implementation**:
+  - Extended User model with globalRole field
+  - Added Case, CaseRole, UserCaseRole, and CaseInvitation tables
+  - Profile API endpoints (GET/PUT /api/profile)
+  - Case invitation endpoints with email integration
+  - Comprehensive profile page with security settings
+  - Navigation integration with profile dropdown
 
 ## Priority 3: Advanced Features
 

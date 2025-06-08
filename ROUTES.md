@@ -49,49 +49,52 @@
 
 ## User Profile Routes
 
-### GET /profile ⏳
+### GET /api/profile ✅
 - **Description**: Retrieve current user profile and associated roles
-- **Response**: `{ user: User, globalRole: string, caseRoles: CaseRole[] }`
-- **Status Codes**: 200 (success), 401 (unauthorized)
+- **Response**: `{ user: User, caseRoles: UserCaseRole[], cases: Case[] }`
+- **Status Codes**: 200 (success), 401 (unauthorized), 404 (user not found)
 - **Authentication**: Required
+- **Features**: Returns user profile with case access and role information
 
-### PUT /profile ⏳
+### PUT /api/profile ✅
 - **Description**: Update user profile information and settings
-- **Body**: `{ name?: string, email?: string, preferences?: object }`
+- **Body**: `{ name?: string, email?: string, globalRole?: string }`
 - **Response**: `{ user: User }`
-- **Status Codes**: 200 (success), 400 (validation error), 401 (unauthorized)
+- **Status Codes**: 200 (success), 400 (validation error), 401 (unauthorized), 404 (user not found)
 - **Authentication**: Required
 
 ## Case Management Routes
 
-### POST /cases/:caseId/invitations ⏳
+### POST /api/cases/:caseId/invitations ✅
 - **Description**: Send case invitation email to specified user
 - **Parameters**: `caseId: number`
 - **Body**: `{ email: string, roleId: number, message?: string }`
-- **Response**: `{ invitation: Invitation }`
-- **Status Codes**: 200 (success), 400 (validation error), 403 (unauthorized), 404 (case not found)
-- **Authentication**: Required (case owner/admin)
+- **Response**: `{ invitation: CaseInvitation }`
+- **Status Codes**: 200 (success), 400 (validation error), 404 (case not found)
+- **Authentication**: Required
+- **Features**: Creates invitation token, sends email, validates role and case access
 
-### GET /cases/:caseId/invitations ⏳
+### GET /api/cases/:caseId/invitations ✅
 - **Description**: List all pending invitations for a case
 - **Parameters**: `caseId: number`
-- **Response**: `{ invitations: Invitation[] }`
-- **Status Codes**: 200 (success), 403 (unauthorized), 404 (case not found)
-- **Authentication**: Required (case owner/admin)
+- **Response**: `{ invitations: CaseInvitation[] }`
+- **Status Codes**: 200 (success), 400 (invalid case ID)
+- **Authentication**: Required
 
-### DELETE /cases/:caseId/invitations/:invitationId ⏳
+### DELETE /api/cases/:caseId/invitations/:invitationId ✅
 - **Description**: Cancel a pending case invitation
 - **Parameters**: `caseId: number, invitationId: number`
 - **Response**: `{ message: string }`
-- **Status Codes**: 200 (success), 403 (unauthorized), 404 (invitation not found)
-- **Authentication**: Required (case owner/admin)
+- **Status Codes**: 200 (success), 400 (invalid IDs), 404 (invitation not found)
+- **Authentication**: Required
 
-### POST /invitations/:token/accept ⏳
+### POST /api/invitations/:token/accept ✅
 - **Description**: Accept case invitation using token from email
 - **Parameters**: `token: string`
 - **Response**: `{ caseRole: UserCaseRole }`
-- **Status Codes**: 200 (success), 400 (expired/invalid token), 404 (invitation not found)
+- **Status Codes**: 200 (success), 400 (expired/invalid token, email mismatch), 404 (invitation not found)
 - **Authentication**: Required
+- **Features**: Validates token expiration, creates user case role, marks invitation as accepted
 
 ## Conservatee Routes
 
