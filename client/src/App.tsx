@@ -8,6 +8,7 @@ import { Layout } from "@/components/layout";
 import Landing from "@/pages/landing";
 import Login from "@/pages/login";
 import Signup from "@/pages/signup";
+import VerifyEmail from "@/pages/verify-email";
 import Dashboard from "@/pages/dashboard";
 import TimeTracking from "@/pages/time-tracking";
 import Conservatees from "@/pages/conservatees";
@@ -38,6 +39,7 @@ function Router() {
       <Route path="/" component={Landing} />
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
+      <Route path="/verify-email" component={VerifyEmail} />
       <Route path="/dashboard">
         <Layout>
           <Dashboard />

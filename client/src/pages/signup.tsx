@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Shield, Loader2, AlertCircle, CheckCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Shield, Loader2, AlertCircle, CheckCircle, Mail } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { signupValidationSchema } from "@shared/schema";
@@ -19,6 +20,8 @@ export default function Signup() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
 
   const form = useForm<SignupForm>({
     resolver: zodResolver(signupValidationSchema),
@@ -38,6 +41,8 @@ export default function Signup() {
     },
     onSuccess: (data) => {
       queryClient.setQueryData(["/api/auth/user"], data.user);
+      setUserEmail(form.getValues("email"));
+      setShowSuccess(true);
       toast({
         title: "Account created!",
         description: "Welcome to Fiducible. Let's get started.",
@@ -53,10 +58,87 @@ export default function Signup() {
     },
   });
 
+  const resendMutation = useMutation({
+    mutationFn: async (email: string) => {
+      const response = await apiRequest("POST", "/api/emails/resend", { email });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Email sent",
+        description: "Verification email has been resent to your inbox",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to send email",
+        description: error.message || "Please try again later",
+        variant: "destructive",
+      });
+    },
+  });
+
   const onSubmit = (data: SignupForm) => {
     const { confirmPassword, ...signupData } = data;
     signupMutation.mutate(signupData);
   };
+
+  const handleResendEmail = () => {
+    resendMutation.mutate(userEmail);
+  };
+
+  if (showSuccess) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="flex items-center justify-center mb-4">
+              <Mail className="h-16 w-16 text-green-500" />
+            </div>
+            <CardTitle className="text-2xl">Check your email</CardTitle>
+            <CardDescription>
+              We've sent a verification link to {userEmail}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Alert className="border-green-200 bg-green-50 dark:bg-green-950">
+              <CheckCircle className="h-4 w-4" />
+              <AlertDescription className="text-green-800 dark:text-green-200">
+                Account created successfully! Please check your email and click the verification link to activate your account.
+              </AlertDescription>
+            </Alert>
+            
+            <div className="space-y-3">
+              <Button 
+                onClick={handleResendEmail}
+                disabled={resendMutation.isPending}
+                variant="outline"
+                className="w-full"
+              >
+                {resendMutation.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Mail className="mr-2 h-4 w-4" />
+                )}
+                Resend verification email
+              </Button>
+              
+              <Button 
+                onClick={() => setLocation("/login")}
+                className="w-full"
+              >
+                Continue to Login
+              </Button>
+            </div>
+
+            <p className="text-xs text-center text-gray-500 dark:text-gray-400">
+              Didn't receive the email? Check your spam folder or try resending.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">

@@ -24,7 +24,7 @@ export default function VerifyEmail() {
       }
 
       try {
-        const response = await apiRequest(`/api/verify-email?token=${token}`, {
+        const response = await fetch(`/api/verify-email?token=${token}`, {
           method: 'GET',
         });
 
