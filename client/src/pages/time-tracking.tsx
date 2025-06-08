@@ -1,4 +1,5 @@
 import { useState } from "react";
+import React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -40,6 +41,8 @@ const roundToSixMinutes = (hours: number): number => {
 };
 
 export default function TimeTracking() {
+  console.log('[TimeTracking] [ROUTE_ENTRY] [' + new Date().toISOString() + '] Entering time tracking page');
+  
   const [editingId, setEditingId] = useState<number | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -48,9 +51,23 @@ export default function TimeTracking() {
     queryKey: ["/api/time-entries"],
   });
 
+  // Add logging for time entries
+  React.useEffect(() => {
+    if (timeEntries) {
+      console.log('[TimeTracking] [QUERY_SUCCESS] [' + new Date().toISOString() + '] Time entries loaded:', timeEntries.length, 'entries');
+    }
+  }, [timeEntries]);
+
   const { data: conservatees, isLoading: conservateesLoading } = useQuery<Conservatee[]>({
     queryKey: ["/api/conservatees"],
   });
+
+  // Add logging for conservatees
+  React.useEffect(() => {
+    if (conservatees) {
+      console.log('[TimeTracking] [QUERY_SUCCESS] [' + new Date().toISOString() + '] Conservatees loaded:', conservatees.length, 'conservatees');
+    }
+  }, [conservatees]);
 
   const form = useForm<TimeEntryForm>({
     resolver: zodResolver(timeEntrySchema),
@@ -164,6 +181,7 @@ export default function TimeTracking() {
   });
 
   const onSubmit = (data: TimeEntryForm) => {
+    console.log('[TimeTracking] [FORM_SUBMIT] [' + new Date().toISOString() + '] Submitting time entry:', data);
     createMutation.mutate(data);
   };
 

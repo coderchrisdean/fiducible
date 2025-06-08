@@ -20,8 +20,11 @@ function Router() {
   const [location] = useLocation();
 
   useEffect(() => {
+    console.log('[Router] [NAVIGATION] [' + new Date().toISOString() + '] Location changed to:', location);
+    
     // Handle browser navigation events
     const handlePopState = () => {
+      console.log('[Router] [BACK_BUTTON] [' + new Date().toISOString() + '] Browser back button pressed, invalidating queries');
       // Force query refetch on browser navigation
       queryClient.invalidateQueries();
     };
@@ -29,9 +32,11 @@ function Router() {
     window.addEventListener('popstate', handlePopState);
     
     // Ensure proper state management on location change
+    console.log('[Router] [REFETCH] [' + new Date().toISOString() + '] Refetching queries for location:', location);
     queryClient.refetchQueries();
 
     return () => {
+      console.log('[Router] [CLEANUP] [' + new Date().toISOString() + '] Cleaning up navigation listeners for:', location);
       window.removeEventListener('popstate', handlePopState);
     };
   }, [location]);
