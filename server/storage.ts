@@ -641,6 +641,11 @@ export class MemStorage implements IStorage {
     const document: Document = {
       id: this.currentDocumentId++,
       ...insertDocument,
+      description: insertDocument.description || null,
+      folderId: insertDocument.folderId || null,
+      searchVector: null,
+      downloadCount: 0,
+      isArchived: false,
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -678,7 +683,7 @@ export class MemStorage implements IStorage {
     const startTime = Date.now();
     const allDocuments = Array.from(this.documents.values()).filter(doc => doc.caseId === caseId);
     const searchResults = allDocuments.filter(doc => 
-      doc.name.toLowerCase().includes(query.toLowerCase()) ||
+      doc.title.toLowerCase().includes(query.toLowerCase()) ||
       doc.description?.toLowerCase().includes(query.toLowerCase())
     );
     
@@ -705,8 +710,8 @@ export class MemStorage implements IStorage {
     const folder: DocumentFolder = {
       id: this.currentDocumentFolderId++,
       ...insertFolder,
-      createdAt: new Date(),
-      updatedAt: new Date()
+      parentId: insertFolder.parentId || null,
+      createdAt: new Date()
     };
     this.documentFolders.set(folder.id, folder);
     return folder;
@@ -718,8 +723,7 @@ export class MemStorage implements IStorage {
     
     const updated: DocumentFolder = { 
       ...existing, 
-      ...updateData, 
-      updatedAt: new Date() 
+      ...updateData
     };
     this.documentFolders.set(id, updated);
     return updated;
@@ -742,8 +746,8 @@ export class MemStorage implements IStorage {
     const tag: DocumentTag = {
       id: this.currentDocumentTagId++,
       ...insertTag,
-      createdAt: new Date(),
-      updatedAt: new Date()
+      color: insertTag.color || '#3B82F6',
+      createdAt: new Date()
     };
     this.documentTags.set(tag.id, tag);
     return tag;
@@ -755,8 +759,7 @@ export class MemStorage implements IStorage {
     
     const updated: DocumentTag = { 
       ...existing, 
-      ...updateData, 
-      updatedAt: new Date() 
+      ...updateData
     };
     this.documentTags.set(id, updated);
     return updated;
@@ -803,7 +806,9 @@ export class MemStorage implements IStorage {
     const log: DocumentAccessLog = {
       id: this.currentDocumentAccessLogId++,
       ...insertLog,
-      accessedAt: new Date()
+      ipAddress: insertLog.ipAddress || null,
+      userAgent: insertLog.userAgent || null,
+      createdAt: new Date()
     };
     this.documentAccessLogs.set(log.id, log);
     return log;
