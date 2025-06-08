@@ -121,42 +121,38 @@ export default function Landing() {
       </div>
 
       {/* CTA Section */}
-      <div className="bg-blue-600 dark:bg-blue-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <div className="text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-              Ready to get started?
-            </h2>
-            <p className="mt-4 text-lg text-blue-100">
-              Join fiduciaries who trust Fiducible for their professional practice
-            </p>
-            <div className="mt-8">
-              <Link href="/signup">
-                <Button size="lg" variant="secondary" className="px-8 py-3">
-                  Create Your Account
-                </Button>
-              </Link>
-            </div>
-          </div>
+      <div className="py-20 bg-white">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <h2 className="text-3xl font-semibold text-gray-900 sm:text-4xl mb-4">
+            Ready to get started?
+          </h2>
+          <p className="text-xl text-gray-600 mb-8">
+            Join professionals who trust Fiducible for their practice management
+          </p>
+          <Link href="/signup">
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-8 py-4 text-lg font-medium shadow-sm">
+              Create Your Account
+            </Button>
+          </Link>
         </div>
       </div>
 
       {/* Footer */}
-      <footer className="bg-gray-50 dark:bg-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <footer className="bg-gray-50 border-t border-gray-100">
+        <div className="max-w-6xl mx-auto px-6 py-12">
           <div className="flex justify-between items-center">
             <div className="flex items-center">
               <img 
-                src="/app-icon.png" 
+                src="/fiducible-logo.png" 
                 alt="Fiducible" 
                 className="h-8 w-8"
               />
-              <span className="ml-2 text-xl font-bold text-teal-600 dark:text-teal-400">Fiducible</span>
+              <span className="ml-3 text-xl font-semibold text-gray-900">Fiducible</span>
             </div>
-            <div className="flex space-x-6 text-sm text-gray-600 dark:text-gray-400">
-              <Link href="/privacy">Privacy Policy</Link>
-              <Link href="/terms">Terms of Service</Link>
-              <Link href="/contact">Contact</Link>
+            <div className="flex space-x-8 text-sm text-gray-500">
+              <a href="#" className="hover:text-gray-700">Privacy</a>
+              <a href="#" className="hover:text-gray-700">Terms</a>
+              <a href="#" className="hover:text-gray-700">Contact</a>
             </div>
           </div>
         </div>

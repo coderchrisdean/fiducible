@@ -33,10 +33,10 @@ export function Layout({ children }: LayoutProps) {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50">
       {/* Navigation Header */}
-      <nav className="bg-white dark:bg-gray-800 shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <nav className="bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto px-6">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
               <Link href="/dashboard">
@@ -44,29 +44,31 @@ export function Layout({ children }: LayoutProps) {
                   <img 
                     src="/fiducible-logo.png" 
                     alt="Fiducible" 
-                    className="h-8 w-auto"
+                    className="h-8 w-8"
                   />
+                  <span className="ml-3 text-xl font-semibold text-gray-900">Fiducible</span>
                 </div>
               </Link>
             </div>
 
             {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-8">
+            <div className="hidden md:flex items-center space-x-2">
               {navigation.map((item) => {
                 const Icon = item.icon;
                 const isActive = location === item.href;
                 return (
                   <Link key={item.name} href={item.href}>
-                    <Button
-                      variant={isActive ? "default" : "ghost"}
+                    <button
                       className={cn(
-                        "flex items-center gap-2",
-                        isActive && "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200"
+                        "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200",
+                        isActive 
+                          ? "bg-blue-600 text-white shadow-sm" 
+                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
                       )}
                     >
                       <Icon className="h-4 w-4" />
                       {item.name}
-                    </Button>
+                    </button>
                   </Link>
                 );
               })}
@@ -76,26 +78,29 @@ export function Layout({ children }: LayoutProps) {
             <div className="flex items-center">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <button className="flex items-center space-x-3 p-2 rounded-xl hover:bg-gray-100 transition-colors">
                     <Avatar className="h-8 w-8">
-                      <AvatarFallback>
+                      <AvatarFallback className="bg-blue-100 text-blue-600 font-medium">
                         {user?.name?.charAt(0)?.toUpperCase() || "U"}
                       </AvatarFallback>
                     </Avatar>
-                  </Button>
+                  </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
-                  <DropdownMenuLabel className="font-normal">
+                <DropdownMenuContent className="w-56 rounded-xl border-gray-200 shadow-sm" align="end" forceMount>
+                  <DropdownMenuLabel className="font-normal p-4">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{user?.name || "User"}</p>
-                      <p className="text-xs leading-none text-muted-foreground">
+                      <p className="text-sm font-medium text-gray-900">{user?.name || "User"}</p>
+                      <p className="text-xs text-gray-500">
                         {user?.email || ""}
                       </p>
                     </div>
                   </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => window.location.href = "/"}>
-                    <LogOut className="mr-2 h-4 w-4" />
+                  <DropdownMenuSeparator className="bg-gray-100" />
+                  <DropdownMenuItem 
+                    onClick={() => window.location.href = "/"} 
+                    className="p-4 text-gray-700 hover:bg-gray-50 cursor-pointer"
+                  >
+                    <LogOut className="mr-3 h-4 w-4" />
                     <span>Sign out</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -106,23 +111,24 @@ export function Layout({ children }: LayoutProps) {
       </nav>
 
       {/* Mobile Navigation */}
-      <div className="md:hidden bg-white dark:bg-gray-800 border-b">
-        <div className="px-2 pt-2 pb-3 space-y-1">
+      <div className="md:hidden bg-white border-b border-gray-100">
+        <div className="px-4 pt-2 pb-3 space-y-1">
           {navigation.map((item) => {
             const Icon = item.icon;
             const isActive = location === item.href;
             return (
               <Link key={item.name} href={item.href}>
-                <Button
-                  variant={isActive ? "default" : "ghost"}
+                <button
                   className={cn(
-                    "w-full justify-start gap-2",
-                    isActive && "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200"
+                    "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200",
+                    isActive 
+                      ? "bg-blue-600 text-white shadow-sm" 
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
                   )}
                 >
                   <Icon className="h-4 w-4" />
                   {item.name}
-                </Button>
+                </button>
               </Link>
             );
           })}
@@ -130,7 +136,7 @@ export function Layout({ children }: LayoutProps) {
       </div>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto">
+      <main className="max-w-6xl mx-auto px-6 py-8">
         {children}
       </main>
     </div>

@@ -26,6 +26,7 @@ export default function Login() {
 
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
+    mode: "onChange",
     defaultValues: {
       email: "",
       password: "",
@@ -59,35 +60,36 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <div className="flex items-center justify-center mb-4">
-            <Shield className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-            <span className="ml-2 text-xl font-bold">Fiducible</span>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+      <div className="w-full max-w-sm">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+          <div className="text-center mb-8">
+            <img 
+              src="/fiducible-logo.png" 
+              alt="Fiducible" 
+              className="h-8 w-8 mx-auto mb-4"
+            />
+            <h1 className="text-2xl font-semibold text-gray-900 mb-2">Welcome back</h1>
+            <p className="text-gray-600">Sign in to your account</p>
           </div>
-          <CardTitle className="text-2xl text-center">Welcome back</CardTitle>
-          <CardDescription className="text-center">
-            Sign in to your fiduciary management account
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
                 control={form.control}
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel className="text-gray-700 font-medium">Email</FormLabel>
                     <FormControl>
                       <Input
                         type="email"
                         placeholder="you@example.com"
+                        className="rounded-xl border-gray-200 h-12 px-4 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                         {...field}
                       />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-red-500 text-sm" />
                   </FormItem>
                 )}
               />
@@ -96,17 +98,22 @@ export default function Login() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Password</FormLabel>
+                    <FormLabel className="text-gray-700 font-medium">Password</FormLabel>
                     <FormControl>
-                      <Input type="password" {...field} />
+                      <Input 
+                        type="password" 
+                        placeholder="Enter your password"
+                        className="rounded-xl border-gray-200 h-12 px-4 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                        {...field} 
+                      />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-red-500 text-sm" />
                   </FormItem>
                 )}
               />
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-12 font-medium shadow-sm"
                 disabled={loginMutation.isPending}
               >
                 {loginMutation.isPending && (

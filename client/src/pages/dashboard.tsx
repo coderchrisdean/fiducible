@@ -33,24 +33,24 @@ export default function Dashboard() {
   const totalConservatees = conservatees?.length || 0;
 
   return (
-    <div className="p-6 space-y-8">
+    <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-3xl font-semibold text-gray-900">Dashboard</h1>
+          <p className="text-gray-600 mt-1">
             Overview of your fiduciary management activities
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <Link href="/time-tracking">
-            <Button>
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-4 py-2 shadow-sm">
               <Plus className="mr-2 h-4 w-4" />
               Add Time Entry
             </Button>
           </Link>
           <Link href="/conservatees">
-            <Button variant="outline">
+            <Button className="border-gray-300 text-gray-700 hover:bg-gray-50 rounded-xl px-4 py-2" variant="outline">
               <Users className="mr-2 h-4 w-4" />
               Manage Conservatees
             </Button>
@@ -59,78 +59,64 @@ export default function Dashboard() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Conservatees</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {conservateesLoading ? <Skeleton className="h-8 w-12" /> : totalConservatees}
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+              <Users className="h-6 w-6 text-blue-600" />
             </div>
-            <p className="text-xs text-muted-foreground">
-              Active cases under management
-            </p>
-          </CardContent>
-        </Card>
+          </div>
+          <div className="text-3xl font-semibold text-gray-900 mb-1">
+            {conservateesLoading ? <Skeleton className="h-8 w-12" /> : totalConservatees}
+          </div>
+          <p className="text-sm text-gray-600">Active conservatees</p>
+        </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Hours This Week</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {timeEntriesLoading ? <Skeleton className="h-8 w-16" /> : totalHoursThisWeek.toFixed(1)}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+              <Clock className="h-6 w-6 text-green-600" />
             </div>
-            <p className="text-xs text-muted-foreground">
-              Billable hours logged
-            </p>
-          </CardContent>
-        </Card>
+          </div>
+          <div className="text-3xl font-semibold text-gray-900 mb-1">
+            {timeEntriesLoading ? <Skeleton className="h-8 w-16" /> : totalHoursThisWeek.toFixed(1)}
+          </div>
+          <p className="text-sm text-gray-600">Hours this week</p>
+        </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Entries</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {timeEntriesLoading ? <Skeleton className="h-8 w-12" /> : timeEntries?.length || 0}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+              <FileText className="h-6 w-6 text-purple-600" />
             </div>
-            <p className="text-xs text-muted-foreground">
-              Time entries recorded
-            </p>
-          </CardContent>
-        </Card>
+          </div>
+          <div className="text-3xl font-semibold text-gray-900 mb-1">
+            {timeEntriesLoading ? <Skeleton className="h-8 w-12" /> : timeEntries?.length || 0}
+          </div>
+          <p className="text-sm text-gray-600">Total entries</p>
+        </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg. Daily Hours</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {timeEntriesLoading ? <Skeleton className="h-8 w-16" /> : (totalHoursThisWeek / 7).toFixed(1)}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
+              <TrendingUp className="h-6 w-6 text-orange-600" />
             </div>
-            <p className="text-xs text-muted-foreground">
-              Based on this week
-            </p>
-          </CardContent>
-        </Card>
+          </div>
+          <div className="text-3xl font-semibold text-gray-900 mb-1">
+            {timeEntriesLoading ? <Skeleton className="h-8 w-16" /> : (totalHoursThisWeek / 7).toFixed(1)}
+          </div>
+          <p className="text-sm text-gray-600">Daily average</p>
+        </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+      <div className="grid gap-6 lg:grid-cols-3">
         {/* Recent Time Entries */}
-        <Card className="col-span-4">
-          <CardHeader>
-            <CardTitle>Recent Time Entries</CardTitle>
-            <CardDescription>
-              Your most recent conservatorship activities
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">Recent Time Entries</h3>
+            <p className="text-gray-600">Your most recent conservatorship activities</p>
+          </div>
+          <div>
             {timeEntriesLoading ? (
               <div className="space-y-3">
                 {[...Array(5)].map((_, i) => (
