@@ -154,6 +154,167 @@
 - Validate all user inputs on both client and server
 - Implement proper authentication checks on protected routes
 
+## Implementation Plan & Checkpoints
+
+### Phase 1: Critical Fixes (Priority: Immediate)
+
+#### Checkpoint 1A: Fix Time Tracking Route (2 hours)
+**Files to modify:**
+- `client/src/App.tsx` - Verify route configuration
+- `client/src/pages/time-tracking.tsx` - Debug state issues
+- `server/routes.ts` - Ensure API endpoints are correct
+
+**Tasks:**
+- [ ] Verify wouter routing syntax for /time-tracking
+- [ ] Check TanStack Query cache keys and invalidation
+- [ ] Test form submission and data persistence
+- [ ] Validate API response handling
+
+#### Checkpoint 1B: Browser Navigation Fix (2 hours)
+**Files to modify:**
+- `client/src/App.tsx` - Add proper history handling
+- `client/src/lib/queryClient.ts` - Configure cache persistence
+- All page components - Add proper cleanup and re-initialization
+
+**Tasks:**
+- [ ] Implement proper browser history state management
+- [ ] Configure TanStack Query to persist on page refresh
+- [ ] Add page-level useEffect for proper mounting
+- [ ] Test back button behavior across all routes
+
+#### Checkpoint 1C: Enhanced Form Validation (3 hours)
+**Files to modify:**
+- `client/src/pages/signup.tsx` - Add regex validations
+- `shared/schema.ts` - Update validation schemas
+- `client/src/components/ui/form.tsx` - Enhance error display
+
+**Validation Rules:**
+- Name: `/^[A-Za-z\s]{2,50}$/` (letters and spaces only, 2-50 chars)
+- Email: `/^[^\s@]+@[^\s@]+\.[^\s@]+$/` (standard email format)
+- Password: `/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/` (min 8 chars, mixed case, number, special char)
+
+**Tasks:**
+- [ ] Add hidden regex validation to signup schema
+- [ ] Implement real-time inline error display
+- [ ] Style error states with red text and icons
+- [ ] Test all validation scenarios
+
+### Phase 2: iOS-Inspired UI Overhaul (Priority: High)
+
+#### Checkpoint 2A: Design System Update (4 hours)
+**Files to modify:**
+- `client/src/index.css` - Update CSS variables and base styles
+- `tailwind.config.ts` - Configure new color palette
+- `client/src/components/ui/` - Update all UI components
+
+**iOS Design Elements:**
+- Rounded corners (8px standard, 12px cards)
+- Soft shadows and subtle borders
+- Clean typography (system fonts)
+- Minimal color palette (whites, grays, single accent color)
+- Generous whitespace and padding
+
+**Tasks:**
+- [ ] Define new CSS custom properties for iOS-style colors
+- [ ] Update button styles with iOS-inspired design
+- [ ] Redesign card components with soft shadows
+- [ ] Implement clean form input styling
+
+#### Checkpoint 2B: Page Layout Redesign (3 hours)
+**Files to modify:**
+- `client/src/components/layout.tsx` - Update sidebar/navigation
+- `client/src/pages/dashboard.tsx` - Redesign dashboard layout
+- `client/src/pages/landing.tsx` - Clean, minimal landing page
+- `client/src/pages/login.tsx` - Simplified login form
+- `client/src/pages/signup.tsx` - Clean signup interface
+
+**Tasks:**
+- [ ] Create clean, minimal navigation sidebar
+- [ ] Redesign dashboard with card-based layout
+- [ ] Simplify landing page with clear value proposition
+- [ ] Style authentication forms with iOS aesthetics
+
+#### Checkpoint 2C: Component Refinement (2 hours)
+**Files to modify:**
+- `client/src/pages/time-tracking.tsx` - Clean time entry interface
+- `client/src/pages/conservatees.tsx` - Simplified conservatee management
+- All form components - Consistent styling
+
+**Tasks:**
+- [ ] Redesign time tracking with minimal, clean interface
+- [ ] Update conservatee management with card-based layout
+- [ ] Ensure consistent form styling across all pages
+- [ ] Add subtle animations and transitions
+
+### Phase 3: Documentation & Code Quality
+
+#### Checkpoint 3A: Code Documentation (1 hour)
+**Files to modify:**
+- `Planning.md` - Update with current state
+- `FEATURES.md` - Created (complete)
+- `ROUTES.md` - Created (complete)
+- `Instructions.md` - This comprehensive plan
+
+**Tasks:**
+- [x] Create FEATURES.md with prioritized backlog
+- [x] Create ROUTES.md documenting all endpoints
+- [ ] Update Planning.md with current architecture
+- [x] Add implementation checkpoints to Instructions.md
+
+### Implementation Schedule
+
+**Day 1-2: Critical Fixes**
+- Morning: Fix time tracking route issues
+- Afternoon: Implement browser navigation fixes
+- Evening: Add comprehensive form validation
+
+**Day 3-4: UI Overhaul**
+- Morning: Design system and CSS updates
+- Afternoon: Page layout redesign
+- Evening: Component refinement and testing
+
+**Day 5: Polish & Documentation**
+- Morning: Final testing and bug fixes
+- Afternoon: Documentation updates
+- Evening: Deployment preparation
+
+### File Impact Summary
+
+**High Impact (Core Changes):**
+- `client/src/App.tsx` - Routing fixes
+- `client/src/index.css` - Design system overhaul
+- `client/src/pages/signup.tsx` - Enhanced validation
+- `shared/schema.ts` - Updated validation schemas
+
+**Medium Impact (Styling):**
+- All page components in `client/src/pages/`
+- All UI components in `client/src/components/ui/`
+- `client/src/components/layout.tsx`
+
+**Low Impact (Documentation):**
+- `Planning.md`, `FEATURES.md`, `ROUTES.md`
+- `Instructions.md` (this file)
+
+### Success Criteria
+
+**Phase 1 Complete When:**
+- /time-tracking route works without errors
+- Browser back/refresh maintains proper state
+- Signup form shows inline validation errors
+- All existing functionality remains intact
+
+**Phase 2 Complete When:**
+- Application has clean, iOS-inspired aesthetic
+- All components use consistent design language
+- Interface feels modern and professional
+- Light theme is polished and cohesive
+
+**Phase 3 Complete When:**
+- All documentation is current and comprehensive
+- Code follows established patterns
+- Implementation plan is validated
+- Ready for next feature development
+
 ## Future Enhancement Areas
 
 - Document management system
