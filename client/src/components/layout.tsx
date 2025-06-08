@@ -43,7 +43,7 @@ export function Layout({ children }: LayoutProps) {
                 <div className="flex items-center">
                   <Shield className="h-8 w-8 text-blue-600 dark:text-blue-400" />
                   <span className="ml-2 text-xl font-bold text-gray-900 dark:text-white">
-                    ConserveTrack
+                    Fiducible
                   </span>
                 </div>
               </Link>

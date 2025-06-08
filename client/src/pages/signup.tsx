@@ -48,7 +48,7 @@ export default function Signup() {
       queryClient.setQueryData(["/api/auth/user"], data.user);
       toast({
         title: "Account created!",
-        description: "Welcome to ConserveTrack. Let's get started.",
+        description: "Welcome to Fiducible. Let's get started.",
       });
       setLocation("/dashboard");
     },
@@ -76,7 +76,7 @@ export default function Signup() {
           </div>
           <CardTitle className="text-2xl text-center">Create your account</CardTitle>
           <CardDescription className="text-center">
-            Start managing your conservatorship responsibilities professionally
+            Start managing your fiduciary responsibilities professionally
           </CardDescription>
         </CardHeader>
         <CardContent>

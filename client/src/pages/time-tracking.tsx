@@ -31,9 +31,9 @@ const timeEntrySchema = z.object({
 
 type TimeEntryForm = z.infer<typeof timeEntrySchema>;
 
-// Utility function to round time to 10-minute increments (0.1667 hours)
-const roundToTenMinutes = (hours: number): number => {
-  return Math.round(hours * 6) / 6;
+// Utility function to round time to 6-minute increments (0.1 hours)
+const roundToSixMinutes = (hours: number): number => {
+  return Math.round(hours * 10) / 10;
 };
 
 export default function TimeTracking() {
@@ -66,7 +66,7 @@ export default function TimeTracking() {
 
   const createMutation = useMutation({
     mutationFn: async (data: TimeEntryForm) => {
-      const timeSpentDecimal = roundToTenMinutes(parseFloat(data.timeSpent));
+      const timeSpentDecimal = roundToSixMinutes(parseFloat(data.timeSpent));
       const payload = {
         ...data,
         timeSpent: timeSpentDecimal.toString(),
@@ -100,7 +100,7 @@ export default function TimeTracking() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: TimeEntryForm }) => {
-      const timeSpentDecimal = roundToTenMinutes(parseFloat(data.timeSpent));
+      const timeSpentDecimal = roundToSixMinutes(parseFloat(data.timeSpent));
       const payload = {
         ...data,
         timeSpent: timeSpentDecimal.toString(),
@@ -182,7 +182,7 @@ export default function TimeTracking() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Time Tracking</h1>
           <p className="text-muted-foreground">
-            Record and manage your conservatorship activities
+            Record and manage your fiduciary activities
           </p>
         </div>
         <Badge variant="secondary" className="text-lg px-4 py-2">
@@ -198,7 +198,7 @@ export default function TimeTracking() {
             Add New Time Entry
           </CardTitle>
           <CardDescription>
-            Record time spent on conservatorship activities (rounded to 10-minute increments)
+            Record time spent on fiduciary activities (minimum 6 minutes, rounded to 0.1h increments)
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -268,12 +268,12 @@ export default function TimeTracking() {
                         type="number"
                         step="0.1"
                         min="0.1"
-                        placeholder="1.5"
+                        placeholder="0.5"
                         {...field}
                         onChange={(e) => {
                           const value = parseFloat(e.target.value);
                           if (!isNaN(value)) {
-                            const rounded = roundToTenMinutes(value);
+                            const rounded = roundToSixMinutes(value);
                             field.onChange(rounded.toString());
                           } else {
                             field.onChange(e.target.value);
@@ -416,7 +416,7 @@ export default function TimeTracking() {
                               onChange={(e) => {
                                 const value = parseFloat(e.target.value);
                                 if (!isNaN(value)) {
-                                  const rounded = roundToTenMinutes(value);
+                                  const rounded = roundToSixMinutes(value);
                                   editForm.setValue("timeSpent", rounded.toString());
                                 }
                               }}

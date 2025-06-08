@@ -39,7 +39,7 @@ export default function Dashboard() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">
-            Overview of your conservatorship management activities
+            Overview of your fiduciary management activities
           </p>
         </div>
         <div className="flex gap-2">
