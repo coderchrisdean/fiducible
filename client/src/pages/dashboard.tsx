@@ -191,7 +191,7 @@ export default function Dashboard() {
           <CardHeader>
             <CardTitle>Your Conservatees</CardTitle>
             <CardDescription>
-              Active conservatorship cases
+              Active fiduciary cases
             </CardDescription>
           </CardHeader>
           <CardContent>

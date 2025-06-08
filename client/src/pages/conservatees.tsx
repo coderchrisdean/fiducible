@@ -151,7 +151,7 @@ export default function Conservatees() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Conservatees</h1>
           <p className="text-muted-foreground">
-            Manage your conservateship cases and contact information
+            Manage your fiduciary cases and contact information
           </p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
