@@ -45,20 +45,29 @@ export default function DocumentsPage() {
   // Fetch documents
   const { data: documentsData, isLoading: documentsLoading } = useQuery({
     queryKey: ["/api/documents", selectedCaseId],
-    queryFn: () => apiRequest(`/api/documents?caseId=${selectedCaseId}`),
+    queryFn: async () => {
+      const response = await fetch(`/api/documents?caseId=${selectedCaseId}`);
+      return response.json();
+    },
     enabled: !!selectedCaseId,
   });
 
   // Fetch users for access control
   const { data: usersData } = useQuery({
     queryKey: ["/api/users"],
-    queryFn: () => apiRequest("/api/users"),
+    queryFn: async () => {
+      const response = await fetch("/api/users");
+      return response.json();
+    },
   });
 
   // Search documents
   const { data: searchResults, isLoading: searchLoading } = useQuery({
     queryKey: ["/api/documents/search", searchQuery, selectedCaseId],
-    queryFn: () => apiRequest(`/api/documents/search?query=${searchQuery}&caseId=${selectedCaseId}`),
+    queryFn: async () => {
+      const response = await fetch(`/api/documents/search?query=${searchQuery}&caseId=${selectedCaseId}`);
+      return response.json();
+    },
     enabled: !!searchQuery && searchQuery.length > 2,
   });
 
@@ -89,10 +98,13 @@ export default function DocumentsPage() {
   // Grant access mutation
   const grantAccessMutation = useMutation({
     mutationFn: async ({ documentId, userId }: { documentId: number; userId: string }) => {
-      return apiRequest(`/api/documents/${documentId}/grant-access`, {
+      const response = await fetch(`/api/documents/${documentId}/grant-access`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: parseInt(userId) }),
       });
+      if (!response.ok) throw new Error("Failed to grant access");
+      return response.json();
     },
     onSuccess: () => {
       toast({ title: "Access granted successfully" });
@@ -107,10 +119,13 @@ export default function DocumentsPage() {
   // Revoke access mutation
   const revokeAccessMutation = useMutation({
     mutationFn: async ({ documentId, userId }: { documentId: number; userId: string }) => {
-      return apiRequest(`/api/documents/${documentId}/revoke-access`, {
+      const response = await fetch(`/api/documents/${documentId}/revoke-access`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: parseInt(userId) }),
       });
+      if (!response.ok) throw new Error("Failed to revoke access");
+      return response.json();
     },
     onSuccess: () => {
       toast({ title: "Access revoked successfully" });

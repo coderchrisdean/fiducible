@@ -97,6 +97,12 @@ Example: `[TimeTracking] [ROUTE_ENTRY] [2025-01-08T10:30:15.123Z] Entering time 
 3. Monitor **[DocumentUpload] [UPLOAD_START]** through **[UPLOAD_SUCCESS/ERROR]** for upload flow
 4. Verify **[API] [UPLOAD_DOCUMENTS]** for server-side processing
 
+### Document Management System
+1. **Document Upload Success**: `[DocumentUpload] [UPLOAD_SUCCESS] ownerId: ${ownerId}, caseId: ${caseId}, documentId: ${documentId}`
+2. **Document Access Grant**: `[DocumentAccess] [GRANT_ACCESS] documentId: ${documentId}, grantedTo: ${userId}, grantedBy: ${ownerId}`
+3. **Document Access Revoke**: `[DocumentAccess] [REVOKE_ACCESS] documentId: ${documentId}, revokedFrom: ${userId}, revokedBy: ${ownerId}`
+4. **Document Download Access**: `[DocumentDownload] [ACCESS_LOG] documentId: ${documentId}, userId: ${userId}, ownerId: ${ownerId}`
+
 ### Email Verification Issues
 1. Check **[VerifyEmail] [ROUTE_ENTRY]** for page access
 2. Monitor **[API] [RESEND_EMAIL]** for resend requests
