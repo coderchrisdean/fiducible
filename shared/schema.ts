@@ -85,6 +85,60 @@ export const caseInvitations = pgTable("case_invitations", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Document Management Tables
+export const documentFolders = pgTable("document_folders", {
+  id: serial("id").primaryKey(),
+  caseId: integer("case_id").notNull().references(() => cases.id),
+  name: text("name").notNull(),
+  parentId: integer("parent_id"),
+  createdBy: integer("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const documents = pgTable("documents", {
+  id: serial("id").primaryKey(),
+  caseId: integer("case_id").notNull().references(() => cases.id),
+  uploadedBy: integer("uploaded_by").notNull().references(() => users.id),
+  title: text("title").notNull(),
+  description: text("description"),
+  fileName: text("file_name").notNull(),
+  filePath: text("file_path").notNull(),
+  fileSize: integer("file_size").notNull(), // bytes
+  mimeType: text("mime_type").notNull(),
+  folderId: integer("folder_id").references(() => documentFolders.id),
+  searchVector: text("search_vector"), // TSVector for full-text search
+  downloadCount: integer("download_count").notNull().default(0),
+  isArchived: boolean("is_archived").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const documentTags = pgTable("document_tags", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  color: text("color").notNull().default("#6366f1"), // Hex color for UI
+  caseId: integer("case_id").notNull().references(() => cases.id),
+  createdBy: integer("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const documentTagRelations = pgTable("document_tag_relations", {
+  id: serial("id").primaryKey(),
+  documentId: integer("document_id").notNull().references(() => documents.id),
+  tagId: integer("tag_id").notNull().references(() => documentTags.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const documentAccessLogs = pgTable("document_access_logs", {
+  id: serial("id").primaryKey(),
+  documentId: integer("document_id").notNull().references(() => documents.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  action: text("action", { enum: ["view", "download", "edit", "delete"] }).notNull(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many, one }) => ({
   conservatees: many(conservatees),
@@ -169,6 +223,75 @@ export const caseInvitationsRelations = relations(caseInvitations, ({ one }) => 
   }),
 }));
 
+export const documentFoldersRelations = relations(documentFolders, ({ one, many }) => ({
+  case: one(cases, {
+    fields: [documentFolders.caseId],
+    references: [cases.id],
+  }),
+  creator: one(users, {
+    fields: [documentFolders.createdBy],
+    references: [users.id],
+  }),
+  parent: one(documentFolders, {
+    fields: [documentFolders.parentId],
+    references: [documentFolders.id],
+    relationName: "parent",
+  }),
+  children: many(documentFolders),
+  documents: many(documents),
+}));
+
+export const documentsRelations = relations(documents, ({ one, many }) => ({
+  case: one(cases, {
+    fields: [documents.caseId],
+    references: [cases.id],
+  }),
+  uploader: one(users, {
+    fields: [documents.uploadedBy],
+    references: [users.id],
+  }),
+  folder: one(documentFolders, {
+    fields: [documents.folderId],
+    references: [documentFolders.id],
+  }),
+  tagRelations: many(documentTagRelations),
+  accessLogs: many(documentAccessLogs),
+}));
+
+export const documentTagsRelations = relations(documentTags, ({ one, many }) => ({
+  case: one(cases, {
+    fields: [documentTags.caseId],
+    references: [cases.id],
+  }),
+  creator: one(users, {
+    fields: [documentTags.createdBy],
+    references: [users.id],
+  }),
+  tagRelations: many(documentTagRelations),
+}));
+
+export const documentTagRelationsRelations = relations(documentTagRelations, ({ one }) => ({
+  document: one(documents, {
+    fields: [documentTagRelations.documentId],
+    references: [documents.id],
+  }),
+  tag: one(documentTags, {
+    fields: [documentTagRelations.tagId],
+    references: [documentTags.id],
+  }),
+}));
+
+export const documentAccessLogsRelations = relations(documentAccessLogs, ({ one }) => ({
+  document: one(documents, {
+    fields: [documentAccessLogs.documentId],
+    references: [documents.id],
+  }),
+  user: one(users, {
+    fields: [documentAccessLogs.userId],
+    references: [users.id],
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -239,6 +362,32 @@ export const insertCaseInvitationSchema = createInsertSchema(caseInvitations).om
   createdAt: true,
 });
 
+export const insertDocumentFolderSchema = createInsertSchema(documentFolders).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertDocumentSchema = createInsertSchema(documents).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertDocumentTagSchema = createInsertSchema(documentTags).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertDocumentTagRelationSchema = createInsertSchema(documentTagRelations).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertDocumentAccessLogSchema = createInsertSchema(documentAccessLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Validation schemas
 const conservateeSchema = insertConservateeSchema.extend({
   name: z.string().min(1, "Name is required"),
@@ -273,3 +422,13 @@ export type InsertUserCaseRole = z.infer<typeof insertUserCaseRoleSchema>;
 export type UserCaseRole = typeof userCaseRoles.$inferSelect;
 export type InsertCaseInvitation = z.infer<typeof insertCaseInvitationSchema>;
 export type CaseInvitation = typeof caseInvitations.$inferSelect;
+export type InsertDocumentFolder = z.infer<typeof insertDocumentFolderSchema>;
+export type DocumentFolder = typeof documentFolders.$inferSelect;
+export type InsertDocument = z.infer<typeof insertDocumentSchema>;
+export type Document = typeof documents.$inferSelect;
+export type InsertDocumentTag = z.infer<typeof insertDocumentTagSchema>;
+export type DocumentTag = typeof documentTags.$inferSelect;
+export type InsertDocumentTagRelation = z.infer<typeof insertDocumentTagRelationSchema>;
+export type DocumentTagRelation = typeof documentTagRelations.$inferSelect;
+export type InsertDocumentAccessLog = z.infer<typeof insertDocumentAccessLogSchema>;
+export type DocumentAccessLog = typeof documentAccessLogs.$inferSelect;

@@ -82,6 +82,60 @@ export interface IStorage {
   createCaseInvitation(invitation: InsertCaseInvitation): Promise<CaseInvitation>;
   updateCaseInvitation(id: number, invitation: Partial<InsertCaseInvitation>): Promise<CaseInvitation | undefined>;
   deleteCaseInvitation(id: number): Promise<boolean>;
+  
+  // Document methods
+  getDocument(id: number): Promise<Document | undefined>;
+  getDocumentsByCase(caseId: number, options?: {
+    folderId?: number;
+    tags?: string[];
+    search?: string;
+    page?: number;
+    limit?: number;
+    sortBy?: "name" | "date" | "size" | "downloads";
+    sortOrder?: "asc" | "desc";
+    archived?: boolean;
+  }): Promise<{
+    documents: Document[];
+    totalCount: number;
+    page: number;
+    totalPages: number;
+  }>;
+  createDocument(document: InsertDocument): Promise<Document>;
+  updateDocument(id: number, document: Partial<InsertDocument>): Promise<Document | undefined>;
+  deleteDocument(id: number): Promise<boolean>;
+  searchDocuments(caseId: number, query: string, options?: {
+    tags?: string[];
+    folderId?: number;
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    documents: Document[];
+    totalCount: number;
+    searchTime: number;
+  }>;
+  
+  // Document folder methods
+  getDocumentFolder(id: number): Promise<DocumentFolder | undefined>;
+  getDocumentFoldersByCase(caseId: number): Promise<DocumentFolder[]>;
+  createDocumentFolder(folder: InsertDocumentFolder): Promise<DocumentFolder>;
+  updateDocumentFolder(id: number, folder: Partial<InsertDocumentFolder>): Promise<DocumentFolder | undefined>;
+  deleteDocumentFolder(id: number): Promise<boolean>;
+  
+  // Document tag methods
+  getDocumentTag(id: number): Promise<DocumentTag | undefined>;
+  getDocumentTagsByCase(caseId: number): Promise<DocumentTag[]>;
+  createDocumentTag(tag: InsertDocumentTag): Promise<DocumentTag>;
+  updateDocumentTag(id: number, tag: Partial<InsertDocumentTag>): Promise<DocumentTag | undefined>;
+  deleteDocumentTag(id: number): Promise<boolean>;
+  
+  // Document tag relation methods
+  addTagsToDocument(documentId: number, tagIds: number[]): Promise<DocumentTagRelation[]>;
+  removeTagFromDocument(documentId: number, tagId: number): Promise<boolean>;
+  getDocumentTags(documentId: number): Promise<DocumentTag[]>;
+  
+  // Document access log methods
+  logDocumentAccess(log: InsertDocumentAccessLog): Promise<DocumentAccessLog>;
+  getDocumentAccessLogs(documentId: number): Promise<DocumentAccessLog[]>;
 }
 
 export class MemStorage implements IStorage {
