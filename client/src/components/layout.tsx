@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { Shield, Home, Clock, Users, LogOut, Menu } from "lucide-react";
+import { Shield, Home, Clock, Users, LogOut, Menu, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface LayoutProps {
@@ -96,6 +96,12 @@ export function Layout({ children }: LayoutProps) {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator className="bg-gray-100" />
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile" className="p-4 text-gray-700 hover:bg-gray-50 cursor-pointer flex items-center">
+                      <User className="mr-3 h-4 w-4" />
+                      <span>Profile</span>
+                    </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuItem 
                     onClick={() => window.location.href = "/"} 
                     className="p-4 text-gray-700 hover:bg-gray-50 cursor-pointer"

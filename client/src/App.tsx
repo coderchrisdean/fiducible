@@ -12,6 +12,7 @@ import VerifyEmail from "@/pages/verify-email";
 import Dashboard from "@/pages/dashboard";
 import TimeTracking from "@/pages/time-tracking";
 import Conservatees from "@/pages/conservatees";
+import Profile from "@/pages/profile";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -53,6 +54,11 @@ function Router() {
       <Route path="/conservatees">
         <Layout>
           <Conservatees />
+        </Layout>
+      </Route>
+      <Route path="/profile">
+        <Layout>
+          <Profile />
         </Layout>
       </Route>
       <Route component={NotFound} />

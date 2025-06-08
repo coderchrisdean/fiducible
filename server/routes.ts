@@ -1,7 +1,15 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertConservateeSchema, insertTimeEntrySchema, insertEmailVerificationSchema } from "@shared/schema";
+import { 
+  insertUserSchema, 
+  insertConservateeSchema, 
+  insertTimeEntrySchema, 
+  insertEmailVerificationSchema,
+  insertCaseSchema,
+  insertCaseInvitationSchema,
+  insertUserCaseRoleSchema
+} from "@shared/schema";
 import bcrypt from "bcrypt";
 import { emailService } from "./emailService";
 
@@ -310,6 +318,207 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Resend verification error:", error);
       res.status(500).json({ message: "Failed to send verification email" });
+    }
+  });
+
+  // Profile routes
+  app.get("/api/profile", async (req, res) => {
+    try {
+      // TODO: Get user from session/auth
+      const userId = 1; // Placeholder - should come from authenticated session
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const userCaseRoles = await storage.getUserCaseRoles(userId);
+      const cases = await storage.getCasesByUser(userId);
+      
+      const { passwordHash: _, ...userWithoutPassword } = user;
+      
+      res.json({
+        user: userWithoutPassword,
+        caseRoles: userCaseRoles,
+        cases: cases
+      });
+    } catch (error) {
+      console.error("Get profile error:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.put("/api/profile", async (req, res) => {
+    try {
+      // TODO: Get user from session/auth
+      const userId = 1; // Placeholder - should come from authenticated session
+      
+      const { name, email, globalRole } = req.body;
+      
+      const updateData: any = {};
+      if (name) updateData.name = name;
+      if (email) updateData.email = email;
+      if (globalRole) updateData.globalRole = globalRole;
+
+      const updatedUser = await storage.updateUser(userId, updateData);
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const { passwordHash: _, ...userWithoutPassword } = updatedUser;
+      res.json({ user: userWithoutPassword });
+    } catch (error) {
+      console.error("Update profile error:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // Case invitation routes
+  app.post("/api/cases/:caseId/invitations", async (req, res) => {
+    try {
+      const caseId = parseInt(req.params.caseId);
+      const { email, roleId, message } = req.body;
+      
+      // TODO: Get user from session/auth
+      const inviterId = 1; // Placeholder - should come from authenticated session
+
+      if (isNaN(caseId)) {
+        return res.status(400).json({ message: "Invalid case ID" });
+      }
+
+      const caseData = await storage.getCase(caseId);
+      if (!caseData) {
+        return res.status(404).json({ message: "Case not found" });
+      }
+
+      const role = await storage.getCaseRole(roleId);
+      if (!role) {
+        return res.status(400).json({ message: "Invalid role ID" });
+      }
+
+      // Check if user already has access to this case
+      const targetUser = await storage.getUserByEmail(email);
+      if (targetUser) {
+        const existingRole = await storage.getUserCaseRole(targetUser.id, caseId);
+        if (existingRole) {
+          return res.status(400).json({ message: "User already has access to this case" });
+        }
+      }
+
+      // Create invitation token and expiration
+      const token = emailService.generateVerificationToken();
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+      const invitationData = insertCaseInvitationSchema.parse({
+        email,
+        caseId,
+        roleId,
+        invitedBy: inviterId,
+        token,
+        expiresAt
+      });
+
+      const invitation = await storage.createCaseInvitation(invitationData);
+
+      // Send invitation email
+      const inviter = await storage.getUser(inviterId);
+      if (inviter) {
+        try {
+          await emailService.sendCaseInvitationEmail(email, inviter.name, caseData.name, token);
+        } catch (emailError) {
+          console.error('Failed to send invitation email:', emailError);
+          // Continue with invitation creation even if email fails
+        }
+      }
+
+      res.json({ invitation });
+    } catch (error) {
+      console.error("Create invitation error:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.get("/api/cases/:caseId/invitations", async (req, res) => {
+    try {
+      const caseId = parseInt(req.params.caseId);
+      
+      if (isNaN(caseId)) {
+        return res.status(400).json({ message: "Invalid case ID" });
+      }
+
+      const invitations = await storage.getCaseInvitationsByCase(caseId);
+      res.json({ invitations });
+    } catch (error) {
+      console.error("Get invitations error:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.delete("/api/cases/:caseId/invitations/:invitationId", async (req, res) => {
+    try {
+      const caseId = parseInt(req.params.caseId);
+      const invitationId = parseInt(req.params.invitationId);
+      
+      if (isNaN(caseId) || isNaN(invitationId)) {
+        return res.status(400).json({ message: "Invalid case or invitation ID" });
+      }
+
+      const deleted = await storage.deleteCaseInvitation(invitationId);
+      if (!deleted) {
+        return res.status(404).json({ message: "Invitation not found" });
+      }
+
+      res.json({ message: "Invitation cancelled" });
+    } catch (error) {
+      console.error("Delete invitation error:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/invitations/:token/accept", async (req, res) => {
+    try {
+      const { token } = req.params;
+      
+      // TODO: Get user from session/auth
+      const userId = 1; // Placeholder - should come from authenticated session
+
+      const invitation = await storage.getCaseInvitation(token);
+      if (!invitation) {
+        return res.status(404).json({ message: "Invalid invitation token" });
+      }
+
+      if (invitation.acceptedAt) {
+        return res.status(400).json({ message: "Invitation already accepted" });
+      }
+
+      if (new Date() > invitation.expiresAt) {
+        return res.status(400).json({ message: "Invitation has expired" });
+      }
+
+      // Check if user's email matches invitation
+      const user = await storage.getUser(userId);
+      if (!user || user.email !== invitation.email) {
+        return res.status(400).json({ message: "Invitation email does not match your account" });
+      }
+
+      // Create user case role
+      const userCaseRoleData = insertUserCaseRoleSchema.parse({
+        userId,
+        caseId: invitation.caseId,
+        roleId: invitation.roleId,
+        invitedBy: invitation.invitedBy,
+        acceptedAt: new Date()
+      });
+
+      const userCaseRole = await storage.createUserCaseRole(userCaseRoleData);
+
+      // Mark invitation as accepted
+      await storage.updateCaseInvitation(invitation.id, { acceptedAt: new Date() });
+
+      res.json({ caseRole: userCaseRole });
+    } catch (error) {
+      console.error("Accept invitation error:", error);
+      res.status(500).json({ message: "Server error" });
     }
   });
 

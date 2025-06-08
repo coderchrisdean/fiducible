@@ -107,10 +107,70 @@ export class MemStorage implements IStorage {
     this.conservatees = new Map();
     this.timeEntries = new Map();
     this.emailVerifications = new Map();
+    this.cases = new Map();
+    this.caseRoles = new Map();
+    this.userCaseRoles = new Map();
+    this.caseInvitations = new Map();
     this.currentUserId = 1;
     this.currentConservateeId = 1;
     this.currentTimeEntryId = 1;
     this.currentEmailVerificationId = 1;
+    this.currentCaseId = 1;
+    this.currentCaseRoleId = 1;
+    this.currentUserCaseRoleId = 1;
+    this.currentCaseInvitationId = 1;
+    
+    // Initialize default case roles
+    this.initializeDefaultCaseRoles();
+  }
+
+  private initializeDefaultCaseRoles() {
+    const defaultRoles = [
+      {
+        name: "Owner",
+        permissions: JSON.stringify({
+          read: true,
+          write: true,
+          delete: true,
+          invite: true,
+          manage: true
+        }),
+        description: "Full access to the case"
+      },
+      {
+        name: "Editor",
+        permissions: JSON.stringify({
+          read: true,
+          write: true,
+          delete: false,
+          invite: false,
+          manage: false
+        }),
+        description: "Can view and edit case information"
+      },
+      {
+        name: "Viewer",
+        permissions: JSON.stringify({
+          read: true,
+          write: false,
+          delete: false,
+          invite: false,
+          manage: false
+        }),
+        description: "Can only view case information"
+      }
+    ];
+
+    defaultRoles.forEach((role) => {
+      const caseRole: CaseRole = {
+        id: this.currentCaseRoleId++,
+        name: role.name,
+        permissions: role.permissions,
+        description: role.description,
+        createdAt: new Date()
+      };
+      this.caseRoles.set(caseRole.id, caseRole);
+    });
   }
 
   // User methods
@@ -274,6 +334,171 @@ export class MemStorage implements IStorage {
 
   async deleteEmailVerification(id: number): Promise<boolean> {
     return this.emailVerifications.delete(id);
+  }
+
+  // Case methods
+  async getCase(id: number): Promise<Case | undefined> {
+    return this.cases.get(id);
+  }
+
+  async getCasesByUser(userId: number): Promise<Case[]> {
+    const userCaseRoles = Array.from(this.userCaseRoles.values()).filter(
+      (ucr) => ucr.userId === userId && ucr.acceptedAt !== null
+    );
+    const caseIds = userCaseRoles.map((ucr) => ucr.caseId);
+    return Array.from(this.cases.values()).filter((c) => caseIds.includes(c.id));
+  }
+
+  async createCase(insertCase: InsertCase): Promise<Case> {
+    const id = this.currentCaseId++;
+    const caseData: Case = {
+      id,
+      name: insertCase.name,
+      description: insertCase.description || null,
+      status: insertCase.status || "active",
+      createdBy: insertCase.createdBy,
+      createdAt: new Date()
+    };
+    this.cases.set(id, caseData);
+    return caseData;
+  }
+
+  async updateCase(id: number, updateData: Partial<InsertCase>): Promise<Case | undefined> {
+    const existing = this.cases.get(id);
+    if (!existing) return undefined;
+
+    const updated: Case = { ...existing, ...updateData };
+    this.cases.set(id, updated);
+    return updated;
+  }
+
+  async deleteCase(id: number): Promise<boolean> {
+    return this.cases.delete(id);
+  }
+
+  // Case role methods
+  async getCaseRole(id: number): Promise<CaseRole | undefined> {
+    return this.caseRoles.get(id);
+  }
+
+  async getAllCaseRoles(): Promise<CaseRole[]> {
+    return Array.from(this.caseRoles.values());
+  }
+
+  async createCaseRole(insertRole: InsertCaseRole): Promise<CaseRole> {
+    const id = this.currentCaseRoleId++;
+    const role: CaseRole = {
+      id,
+      name: insertRole.name,
+      permissions: insertRole.permissions,
+      description: insertRole.description || null,
+      createdAt: new Date()
+    };
+    this.caseRoles.set(id, role);
+    return role;
+  }
+
+  async updateCaseRole(id: number, updateData: Partial<InsertCaseRole>): Promise<CaseRole | undefined> {
+    const existing = this.caseRoles.get(id);
+    if (!existing) return undefined;
+
+    const updated: CaseRole = { ...existing, ...updateData };
+    this.caseRoles.set(id, updated);
+    return updated;
+  }
+
+  async deleteCaseRole(id: number): Promise<boolean> {
+    return this.caseRoles.delete(id);
+  }
+
+  // User case role methods
+  async getUserCaseRole(userId: number, caseId: number): Promise<UserCaseRole | undefined> {
+    return Array.from(this.userCaseRoles.values()).find(
+      (ucr) => ucr.userId === userId && ucr.caseId === caseId
+    );
+  }
+
+  async getUserCaseRoles(userId: number): Promise<UserCaseRole[]> {
+    return Array.from(this.userCaseRoles.values()).filter(
+      (ucr) => ucr.userId === userId
+    );
+  }
+
+  async getCaseUserRoles(caseId: number): Promise<UserCaseRole[]> {
+    return Array.from(this.userCaseRoles.values()).filter(
+      (ucr) => ucr.caseId === caseId
+    );
+  }
+
+  async createUserCaseRole(insertUserCaseRole: InsertUserCaseRole): Promise<UserCaseRole> {
+    const id = this.currentUserCaseRoleId++;
+    const userCaseRole: UserCaseRole = {
+      id,
+      userId: insertUserCaseRole.userId,
+      caseId: insertUserCaseRole.caseId,
+      roleId: insertUserCaseRole.roleId,
+      invitedBy: insertUserCaseRole.invitedBy,
+      acceptedAt: insertUserCaseRole.acceptedAt || null,
+      createdAt: new Date()
+    };
+    this.userCaseRoles.set(id, userCaseRole);
+    return userCaseRole;
+  }
+
+  async updateUserCaseRole(id: number, updateData: Partial<InsertUserCaseRole>): Promise<UserCaseRole | undefined> {
+    const existing = this.userCaseRoles.get(id);
+    if (!existing) return undefined;
+
+    const updated: UserCaseRole = { ...existing, ...updateData };
+    this.userCaseRoles.set(id, updated);
+    return updated;
+  }
+
+  async deleteUserCaseRole(id: number): Promise<boolean> {
+    return this.userCaseRoles.delete(id);
+  }
+
+  // Case invitation methods
+  async getCaseInvitation(token: string): Promise<CaseInvitation | undefined> {
+    return Array.from(this.caseInvitations.values()).find(
+      (invitation) => invitation.token === token
+    );
+  }
+
+  async getCaseInvitationsByCase(caseId: number): Promise<CaseInvitation[]> {
+    return Array.from(this.caseInvitations.values()).filter(
+      (invitation) => invitation.caseId === caseId && invitation.acceptedAt === null
+    );
+  }
+
+  async createCaseInvitation(insertInvitation: InsertCaseInvitation): Promise<CaseInvitation> {
+    const id = this.currentCaseInvitationId++;
+    const invitation: CaseInvitation = {
+      id,
+      email: insertInvitation.email,
+      caseId: insertInvitation.caseId,
+      roleId: insertInvitation.roleId,
+      invitedBy: insertInvitation.invitedBy,
+      token: insertInvitation.token,
+      expiresAt: insertInvitation.expiresAt,
+      acceptedAt: insertInvitation.acceptedAt || null,
+      createdAt: new Date()
+    };
+    this.caseInvitations.set(id, invitation);
+    return invitation;
+  }
+
+  async updateCaseInvitation(id: number, updateData: Partial<InsertCaseInvitation>): Promise<CaseInvitation | undefined> {
+    const existing = this.caseInvitations.get(id);
+    if (!existing) return undefined;
+
+    const updated: CaseInvitation = { ...existing, ...updateData };
+    this.caseInvitations.set(id, updated);
+    return updated;
+  }
+
+  async deleteCaseInvitation(id: number): Promise<boolean> {
+    return this.caseInvitations.delete(id);
   }
 }
 
