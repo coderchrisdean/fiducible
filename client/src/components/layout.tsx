@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { Shield, Home, Clock, Users, LogOut, Menu, User } from "lucide-react";
+import { Shield, Home, Clock, Users, FileText, LogOut, Menu, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface LayoutProps {
@@ -30,6 +30,7 @@ export function Layout({ children }: LayoutProps) {
     { name: "Dashboard", href: "/dashboard", icon: Home },
     { name: "Time Tracking", href: "/time-tracking", icon: Clock },
     { name: "Conservatees", href: "/conservatees", icon: Users },
+    { name: "Documents", href: "/documents/1", icon: FileText },
   ];
 
   return (
