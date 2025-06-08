@@ -31,7 +31,7 @@ export default function Profile() {
   const { data: profileData, isLoading } = useQuery({
     queryKey: ["/api/profile"],
     enabled: true,
-  });
+  }) as { data: any, isLoading: boolean };
 
   const form = useForm<ProfileUpdateForm>({
     resolver: zodResolver(profileUpdateSchema),
@@ -43,11 +43,11 @@ export default function Profile() {
   });
 
   // Update form when profile data loads
-  if (profileData?.user && !form.formState.isDirty) {
+  if (profileData && !form.formState.isDirty) {
     form.reset({
-      name: profileData.user.name || "",
-      email: profileData.user.email || "",
-      globalRole: profileData.user.globalRole || "conservator",
+      name: profileData.name || "",
+      email: profileData.email || "",
+      globalRole: profileData.globalRole || "conservator",
     });
   }
 
@@ -84,9 +84,9 @@ export default function Profile() {
     if (isEditing) {
       // Reset form to original values
       form.reset({
-        name: profileData?.user?.name || "",
-        email: profileData?.user?.email || "",
-        globalRole: profileData?.user?.globalRole || "conservator",
+        name: profileData?.name || "",
+        email: profileData?.email || "",
+        globalRole: profileData?.globalRole || "conservator",
       });
     }
     setIsEditing(!isEditing);
@@ -117,7 +117,7 @@ export default function Profile() {
     );
   }
 
-  const user = profileData?.user;
+  const user = profileData;
   const caseRoles = profileData?.caseRoles || [];
   const cases = profileData?.cases || [];
 
