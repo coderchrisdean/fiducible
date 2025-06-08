@@ -64,11 +64,11 @@ export default function Login() {
         <CardHeader className="space-y-1">
           <div className="flex items-center justify-center mb-4">
             <Shield className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-            <span className="ml-2 text-xl font-bold">ConserveTrack</span>
+            <span className="ml-2 text-xl font-bold">Fiducible</span>
           </div>
           <CardTitle className="text-2xl text-center">Welcome back</CardTitle>
           <CardDescription className="text-center">
-            Sign in to your conservatorship management account
+            Sign in to your fiduciary management account
           </CardDescription>
         </CardHeader>
         <CardContent>

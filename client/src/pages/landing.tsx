@@ -13,7 +13,7 @@ export default function Landing() {
             <div className="flex items-center">
               <Shield className="h-8 w-8 text-blue-600 dark:text-blue-400" />
               <span className="ml-2 text-xl font-bold text-gray-900 dark:text-white">
-                ConserveTrack
+                Fiducible
               </span>
             </div>
             <div className="flex items-center space-x-4">
@@ -33,12 +33,12 @@ export default function Landing() {
         <div className="text-center">
           <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl">
             Streamline Your
-            <span className="text-blue-600 dark:text-blue-400"> Conservatorship </span>
+            <span className="text-blue-600 dark:text-blue-400"> Fiduciary </span>
             Management
           </h1>
           <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
             Track time, manage conservatees, and maintain detailed records with our comprehensive 
-            conservatorship management platform. Built for conservators who need reliable, 
+            fiduciary management platform. Built for conservators who need reliable, 
             professional documentation.
           </p>
           <div className="mt-10 flex items-center justify-center gap-x-6">
@@ -61,10 +61,10 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
-              Everything you need to manage conservatorships
+              Everything you need to manage fiduciary responsibilities
             </h2>
             <p className="mt-4 text-lg text-gray-600 dark:text-gray-300">
-              Professional tools designed specifically for conservators
+              Professional tools designed specifically for fiduciaries
             </p>
           </div>
 
@@ -74,7 +74,7 @@ export default function Landing() {
                 <Clock className="h-8 w-8 text-blue-600 dark:text-blue-400" />
                 <CardTitle>Time Tracking</CardTitle>
                 <CardDescription>
-                  Precise time tracking with 10-minute increments for accurate billing and reporting
+                  Precise time tracking with 6-minute increments for accurate billing and reporting
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -120,7 +120,7 @@ export default function Landing() {
               Ready to get started?
             </h2>
             <p className="mt-4 text-lg text-blue-100">
-              Join conservators who trust ConserveTrack for their professional practice
+              Join fiduciaries who trust Fiducible for their professional practice
             </p>
             <div className="mt-8">
               <Link href="/signup">
@@ -140,7 +140,7 @@ export default function Landing() {
             <div className="flex items-center">
               <Shield className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               <span className="ml-2 text-lg font-semibold text-gray-900 dark:text-white">
-                ConserveTrack
+                Fiducible
               </span>
             </div>
             <div className="flex space-x-6 text-sm text-gray-600 dark:text-gray-400">

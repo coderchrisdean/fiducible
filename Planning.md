@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**App:** Conservatorship Management Web App
+**App:** Fiducible
 **Purpose:** Track every aspect of managing a conservatorship, with daily feature rollouts.
 
 ## Core Features
@@ -72,7 +72,7 @@
      * **Date Picker** component
      * **Task Description** text input
      * **Memo** textarea
-     * **Time Spent** numeric input snapping to 0.1667h (1/6th hour) increments
+     * **Time Spent** numeric input with minimum 6 minutes (0.1h increments)
    * **List & Edit**:
 
      * Table or cards of past entries
