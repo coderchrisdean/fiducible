@@ -16,7 +16,7 @@ import bcrypt from "bcrypt";
 import { emailService } from "./emailService";
 import { db } from "./db";
 import { eq, and, or, ilike } from "drizzle-orm";
-import { isAuthenticated } from "./replitAuth";
+import { setupJWTAuth, authenticateToken, AuthenticatedRequest } from "./jwtAuth";
 import { documentStorage } from "./documentStorage";
 import { LocalFileStorage } from "./fileStorage";
 import multer from "multer";
@@ -25,7 +25,10 @@ const fileStorage = new LocalFileStorage();
 const upload = multer({ storage: multer.memoryStorage() });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth routes
+  // Setup JWT Authentication
+  await setupJWTAuth(app);
+
+  // Legacy signup route for compatibility
   app.post("/api/auth/signup", async (req, res) => {
     try {
       const { name, email, password } = req.body;
@@ -784,7 +787,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // New Document Management Routes with Access Control
 
   // GET /documents - List documents where user is owner or has access
-  app.get("/api/documents", isAuthenticated, async (req, res) => {
+  app.get("/api/documents", authenticateToken as any, async (req, res) => {
     try {
       const userId = (req.user as any).id;
       const { caseId } = req.query;
@@ -827,7 +830,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // POST /documents/upload - Upload document with structured path
-  app.post("/api/documents/upload", isAuthenticated, upload.array('files', 10), async (req, res) => {
+  app.post("/api/documents/upload", authenticateToken as any, upload.array('files', 10), async (req, res) => {
     try {
       const userId = (req.user as any).id;
       const { caseId, title } = req.body;
@@ -878,7 +881,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // POST /documents/:id/grant-access - Grant access to document
-  app.post("/api/documents/:id/grant-access", isAuthenticated, async (req, res) => {
+  app.post("/api/documents/:id/grant-access", authenticateToken as any, async (req, res) => {
     try {
       const userId = (req.user as any).id;
       const documentId = parseInt(req.params.id);
