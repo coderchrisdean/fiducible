@@ -48,7 +48,7 @@
      * id, conservatorId, date, taskDescription, memo, timeSpent (decimal hours), createdAt
    * **Additional Entities** (future features)
 
-     * Documents, Tasks, FinancialEntries, VisitLogs, Medications, AuditLogs
+     * Tasks, FinancialEntries, VisitLogs, Medications, AuditLogs
 
 5. **Authentication Flow**
 

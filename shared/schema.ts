@@ -97,14 +97,16 @@ export const documentFolders = pgTable("document_folders", {
 
 export const documents = pgTable("documents", {
   id: serial("id").primaryKey(),
+  ownerId: integer("owner_id").notNull().references(() => users.id),
   caseId: integer("case_id").notNull().references(() => cases.id),
-  uploadedBy: integer("uploaded_by").notNull().references(() => users.id),
   title: text("title").notNull(),
-  description: text("description"),
   fileName: text("file_name").notNull(),
   filePath: text("file_path").notNull(),
-  fileSize: integer("file_size").notNull(), // bytes
-  mimeType: text("mime_type").notNull(),
+  uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
+  // Keep additional fields for compatibility
+  description: text("description"),
+  fileSize: integer("file_size"), // bytes
+  mimeType: text("mime_type"),
   folderId: integer("folder_id").references(() => documentFolders.id),
   searchVector: text("search_vector"), // TSVector for full-text search
   downloadCount: integer("download_count").notNull().default(0),
@@ -137,6 +139,13 @@ export const documentAccessLogs = pgTable("document_access_logs", {
   ipAddress: text("ip_address"),
   userAgent: text("user_agent"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const documentAccess = pgTable("document_access", {
+  id: serial("id").primaryKey(),
+  documentId: integer("document_id").notNull().references(() => documents.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  grantedAt: timestamp("granted_at").defaultNow().notNull(),
 });
 
 // Relations
@@ -246,8 +255,8 @@ export const documentsRelations = relations(documents, ({ one, many }) => ({
     fields: [documents.caseId],
     references: [cases.id],
   }),
-  uploader: one(users, {
-    fields: [documents.uploadedBy],
+  owner: one(users, {
+    fields: [documents.ownerId],
     references: [users.id],
   }),
   folder: one(documentFolders, {
@@ -256,6 +265,7 @@ export const documentsRelations = relations(documents, ({ one, many }) => ({
   }),
   tagRelations: many(documentTagRelations),
   accessLogs: many(documentAccessLogs),
+  accessGrants: many(documentAccess),
 }));
 
 export const documentTagsRelations = relations(documentTags, ({ one, many }) => ({
@@ -288,6 +298,17 @@ export const documentAccessLogsRelations = relations(documentAccessLogs, ({ one 
   }),
   user: one(users, {
     fields: [documentAccessLogs.userId],
+    references: [users.id],
+  }),
+}));
+
+export const documentAccessRelations = relations(documentAccess, ({ one }) => ({
+  document: one(documents, {
+    fields: [documentAccess.documentId],
+    references: [documents.id],
+  }),
+  user: one(users, {
+    fields: [documentAccess.userId],
     references: [users.id],
   }),
 }));
@@ -388,6 +409,11 @@ export const insertDocumentAccessLogSchema = createInsertSchema(documentAccessLo
   createdAt: true,
 });
 
+export const insertDocumentAccessSchema = createInsertSchema(documentAccess).omit({
+  id: true,
+  grantedAt: true,
+});
+
 // Validation schemas
 const conservateeSchema = insertConservateeSchema.extend({
   name: z.string().min(1, "Name is required"),
@@ -432,3 +458,5 @@ export type InsertDocumentTagRelation = z.infer<typeof insertDocumentTagRelation
 export type DocumentTagRelation = typeof documentTagRelations.$inferSelect;
 export type InsertDocumentAccessLog = z.infer<typeof insertDocumentAccessLogSchema>;
 export type DocumentAccessLog = typeof documentAccessLogs.$inferSelect;
+export type InsertDocumentAccess = z.infer<typeof insertDocumentAccessSchema>;
+export type DocumentAccess = typeof documentAccess.$inferSelect;
