@@ -104,12 +104,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Conservatee routes
   app.get("/api/conservatees", async (req, res) => {
+    console.log('[API] [GET_CONSERVATEES] [' + new Date().toISOString() + '] Request received');
     try {
       // In production, get conservatorId from authenticated session
       const conservatorId = 1; // Mock for now
+      console.log('[API] [GET_CONSERVATEES] [' + new Date().toISOString() + '] Fetching conservatees for conservator:', conservatorId);
       const conservatees = await storage.getConservateesByConservator(conservatorId);
+      console.log('[API] [GET_CONSERVATEES] [' + new Date().toISOString() + '] Successfully fetched', conservatees.length, 'conservatees');
       res.json(conservatees);
     } catch (error) {
+      console.error('[API] [GET_CONSERVATEES] [' + new Date().toISOString() + '] Error:', error);
       res.status(500).json({ message: "Server error" });
     }
   });
@@ -170,26 +174,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Time entry routes
   app.get("/api/time-entries", async (req, res) => {
+    console.log('[API] [GET_TIME_ENTRIES] [' + new Date().toISOString() + '] Request received');
     try {
       const conservatorId = 1; // Mock for now
+      console.log('[API] [GET_TIME_ENTRIES] [' + new Date().toISOString() + '] Fetching time entries for conservator:', conservatorId);
       const timeEntries = await storage.getTimeEntriesByConservator(conservatorId);
+      console.log('[API] [GET_TIME_ENTRIES] [' + new Date().toISOString() + '] Successfully fetched', timeEntries.length, 'time entries');
       res.json(timeEntries);
     } catch (error) {
+      console.error('[API] [GET_TIME_ENTRIES] [' + new Date().toISOString() + '] Error:', error);
       res.status(500).json({ message: "Server error" });
     }
   });
 
   app.post("/api/time-entries", async (req, res) => {
+    console.log('[API] [POST_TIME_ENTRIES] [' + new Date().toISOString() + '] Request received with data:', req.body);
     try {
       const conservatorId = 1; // Mock for now
       const timeEntryData = insertTimeEntrySchema.parse({
         ...req.body,
         conservatorId
       });
+      console.log('[API] [POST_TIME_ENTRIES] [' + new Date().toISOString() + '] Parsed time entry data:', timeEntryData);
 
       const timeEntry = await storage.createTimeEntry(timeEntryData);
+      console.log('[API] [POST_TIME_ENTRIES] [' + new Date().toISOString() + '] Successfully created time entry with ID:', timeEntry.id);
       res.json(timeEntry);
     } catch (error) {
+      console.error('[API] [POST_TIME_ENTRIES] [' + new Date().toISOString() + '] Error:', error);
       res.status(400).json({ message: "Invalid time entry data" });
     }
   });
@@ -269,19 +281,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/emails/resend", async (req, res) => {
+    console.log('[API] [RESEND_EMAIL] [' + new Date().toISOString() + '] Resend email request received');
     try {
       const { email } = req.body;
+      console.log('[API] [RESEND_EMAIL] [' + new Date().toISOString() + '] Request for email:', email);
       
       if (!email) {
+        console.log('[API] [RESEND_EMAIL] [' + new Date().toISOString() + '] Email parameter missing');
         return res.status(400).json({ message: "Email is required" });
       }
 
       const user = await storage.getUserByEmail(email);
       if (!user) {
+        console.log('[API] [RESEND_EMAIL] [' + new Date().toISOString() + '] User not found for email:', email);
         return res.status(404).json({ message: "User not found" });
       }
 
       if (user.emailVerified) {
+        console.log('[API] [RESEND_EMAIL] [' + new Date().toISOString() + '] Email already verified for user:', user.id);
         return res.status(400).json({ message: "Email already verified" });
       }
 
@@ -312,11 +329,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.createEmailVerification(verificationData);
 
       // Send verification email
+      console.log('[API] [RESEND_EMAIL] [' + new Date().toISOString() + '] Sending verification email to:', email);
       await emailService.sendVerificationEmail(email, user.name, token);
 
+      console.log('[API] [RESEND_EMAIL] [' + new Date().toISOString() + '] Email sent successfully');
       res.json({ message: "Verification email sent successfully" });
     } catch (error) {
-      console.error("Resend verification error:", error);
+      console.error('[API] [RESEND_EMAIL] [' + new Date().toISOString() + '] Error:', error);
       res.status(500).json({ message: "Failed to send verification email" });
     }
   });
@@ -531,20 +550,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Document upload
   app.post("/api/cases/:caseId/documents/upload", upload.array('files', 10), async (req, res) => {
+    console.log('[API] [UPLOAD_DOCUMENTS] [' + new Date().toISOString() + '] Upload request received for case:', req.params.caseId);
     try {
       // TODO: Get user from session/auth - using mock for now
       const userId = 1;
 
       const caseId = parseInt(req.params.caseId);
       if (isNaN(caseId)) {
+        console.error('[API] [UPLOAD_DOCUMENTS] [' + new Date().toISOString() + '] Invalid case ID:', req.params.caseId);
         return res.status(400).json({ message: "Invalid case ID" });
       }
 
       const files = req.files as Express.Multer.File[];
       if (!files || files.length === 0) {
+        console.log('[API] [UPLOAD_DOCUMENTS] [' + new Date().toISOString() + '] No files in upload request');
         return res.status(400).json({ message: "No files uploaded" });
       }
 
+      console.log('[API] [UPLOAD_DOCUMENTS] [' + new Date().toISOString() + '] Processing', files.length, 'files');
       const { folderId, description } = req.body;
       const uploadedDocuments = [];
 
@@ -578,15 +601,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
 
         const document = await documentStorage.createDocument(documentData);
+        console.log('[API] [UPLOAD_DOCUMENTS] [' + new Date().toISOString() + '] Successfully created document with ID:', document.id);
         uploadedDocuments.push(document);
       }
 
+      console.log('[API] [UPLOAD_DOCUMENTS] [' + new Date().toISOString() + '] Upload completed successfully. Total documents:', uploadedDocuments.length);
       res.json({ 
         documents: uploadedDocuments,
         message: `${uploadedDocuments.length} file(s) uploaded successfully`
       });
     } catch (error) {
-      console.error("Document upload error:", error);
+      console.error('[API] [UPLOAD_DOCUMENTS] [' + new Date().toISOString() + '] Upload failed with error:', error);
       res.status(500).json({ message: "Failed to upload documents" });
     }
   });

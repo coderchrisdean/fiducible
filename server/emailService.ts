@@ -22,10 +22,12 @@ export class EmailService {
   }
 
   async sendVerificationEmail(email: string, name: string, token: string): Promise<void> {
+    console.log('[EmailService] [SEND_VERIFICATION] [' + new Date().toISOString() + '] Attempting to send verification email to:', email);
     const verificationUrl = this.getVerificationUrl(token);
+    console.log('[EmailService] [SEND_VERIFICATION] [' + new Date().toISOString() + '] Generated verification URL:', verificationUrl);
     
     try {
-      await resend.emails.send({
+      const result = await resend.emails.send({
         from: this.fromEmail,
         to: email,
         subject: 'Verify your Fiducible account',
@@ -48,8 +50,9 @@ export class EmailService {
           </div>
         `,
       });
+      console.log('[EmailService] [SEND_VERIFICATION] [' + new Date().toISOString() + '] Email sent successfully. ID:', result.data?.id);
     } catch (error) {
-      console.error('Failed to send verification email:', error);
+      console.error('[EmailService] [SEND_VERIFICATION] [' + new Date().toISOString() + '] Failed to send verification email:', error);
       throw new Error('Failed to send verification email');
     }
   }
