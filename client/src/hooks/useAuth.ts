@@ -14,8 +14,11 @@ interface RegisterData {
 }
 
 interface AuthResponse {
-  token: string;
+  token?: string;
   user: User;
+  message?: string;
+  emailSent?: boolean;
+  emailVerificationRequired?: boolean;
 }
 
 export function useAuth() {
@@ -31,9 +34,11 @@ export function useAuth() {
       return await res.json();
     },
     onSuccess: (data: AuthResponse) => {
-      localStorage.setItem('auth_token', data.token);
-      queryClient.setQueryData(["/api/user"], data.user);
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      if (data.token) {
+        localStorage.setItem('auth_token', data.token);
+        queryClient.setQueryData(["/api/user"], data.user);
+        queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      }
     },
   });
 
@@ -43,9 +48,8 @@ export function useAuth() {
       return await res.json();
     },
     onSuccess: (data: AuthResponse) => {
-      localStorage.setItem('auth_token', data.token);
-      queryClient.setQueryData(["/api/user"], data.user);
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      // Registration doesn't return a token - user must verify email first
+      // Don't set token or user data in localStorage
     },
   });
 

@@ -196,11 +196,18 @@ All document management and user-specific routes require authentication:
 - **Bearer Token Authentication**: Standard Authorization header format
 - **Client-side Token Storage**: localStorage for session persistence
 
+### Email Verification Flow
+- **Registration**: New users receive verification email via Resend
+- **Login Restriction**: Users must verify email before first login
+- **Token Expiration**: Verification tokens expire after 24 hours
+- **Resend Capability**: Users can request new verification emails
+
 ### Migration from Replit Auth
 - Removed OpenID Connect dependencies
 - Replaced session-based auth with token-based auth
 - Updated all protected routes to use JWT middleware
 - Modified frontend to handle token-based authentication
+- Integrated Resend for email verification system
 
 ## Security Considerations
 
