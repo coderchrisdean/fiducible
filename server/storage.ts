@@ -7,6 +7,11 @@ import {
   caseRoles,
   userCaseRoles,
   caseInvitations,
+  documents,
+  documentFolders,
+  documentTags,
+  documentTagRelations,
+  documentAccessLogs,
   type User, 
   type InsertUser, 
   type Conservatee, 
@@ -22,7 +27,17 @@ import {
   type UserCaseRole,
   type InsertUserCaseRole,
   type CaseInvitation,
-  type InsertCaseInvitation
+  type InsertCaseInvitation,
+  type Document,
+  type InsertDocument,
+  type DocumentFolder,
+  type InsertDocumentFolder,
+  type DocumentTag,
+  type InsertDocumentTag,
+  type DocumentTagRelation,
+  type InsertDocumentTagRelation,
+  type DocumentAccessLog,
+  type InsertDocumentAccessLog
 } from "@shared/schema";
 
 export interface IStorage {
@@ -147,6 +162,11 @@ export class MemStorage implements IStorage {
   private caseRoles: Map<number, CaseRole>;
   private userCaseRoles: Map<number, UserCaseRole>;
   private caseInvitations: Map<number, CaseInvitation>;
+  private documents: Map<number, Document>;
+  private documentFolders: Map<number, DocumentFolder>;
+  private documentTags: Map<number, DocumentTag>;
+  private documentTagRelations: Map<number, DocumentTagRelation>;
+  private documentAccessLogs: Map<number, DocumentAccessLog>;
   private currentUserId: number;
   private currentConservateeId: number;
   private currentTimeEntryId: number;
@@ -155,6 +175,11 @@ export class MemStorage implements IStorage {
   private currentCaseRoleId: number;
   private currentUserCaseRoleId: number;
   private currentCaseInvitationId: number;
+  private currentDocumentId: number;
+  private currentDocumentFolderId: number;
+  private currentDocumentTagId: number;
+  private currentDocumentTagRelationId: number;
+  private currentDocumentAccessLogId: number;
 
   constructor() {
     this.users = new Map();
