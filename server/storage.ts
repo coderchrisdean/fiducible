@@ -3,6 +3,10 @@ import {
   conservatees, 
   timeEntries, 
   emailVerifications,
+  cases,
+  caseRoles,
+  userCaseRoles,
+  caseInvitations,
   type User, 
   type InsertUser, 
   type Conservatee, 
@@ -10,7 +14,15 @@ import {
   type TimeEntry, 
   type InsertTimeEntry,
   type EmailVerification,
-  type InsertEmailVerification
+  type InsertEmailVerification,
+  type Case,
+  type InsertCase,
+  type CaseRole,
+  type InsertCaseRole,
+  type UserCaseRole,
+  type InsertUserCaseRole,
+  type CaseInvitation,
+  type InsertCaseInvitation
 } from "@shared/schema";
 
 export interface IStorage {
@@ -41,6 +53,35 @@ export interface IStorage {
   createEmailVerification(verification: InsertEmailVerification): Promise<EmailVerification>;
   updateEmailVerification(id: number, verification: Partial<InsertEmailVerification>): Promise<EmailVerification | undefined>;
   deleteEmailVerification(id: number): Promise<boolean>;
+  
+  // Case methods
+  getCase(id: number): Promise<Case | undefined>;
+  getCasesByUser(userId: number): Promise<Case[]>;
+  createCase(caseData: InsertCase): Promise<Case>;
+  updateCase(id: number, caseData: Partial<InsertCase>): Promise<Case | undefined>;
+  deleteCase(id: number): Promise<boolean>;
+  
+  // Case role methods
+  getCaseRole(id: number): Promise<CaseRole | undefined>;
+  getAllCaseRoles(): Promise<CaseRole[]>;
+  createCaseRole(roleData: InsertCaseRole): Promise<CaseRole>;
+  updateCaseRole(id: number, roleData: Partial<InsertCaseRole>): Promise<CaseRole | undefined>;
+  deleteCaseRole(id: number): Promise<boolean>;
+  
+  // User case role methods
+  getUserCaseRole(userId: number, caseId: number): Promise<UserCaseRole | undefined>;
+  getUserCaseRoles(userId: number): Promise<UserCaseRole[]>;
+  getCaseUserRoles(caseId: number): Promise<UserCaseRole[]>;
+  createUserCaseRole(userCaseRole: InsertUserCaseRole): Promise<UserCaseRole>;
+  updateUserCaseRole(id: number, userCaseRole: Partial<InsertUserCaseRole>): Promise<UserCaseRole | undefined>;
+  deleteUserCaseRole(id: number): Promise<boolean>;
+  
+  // Case invitation methods
+  getCaseInvitation(token: string): Promise<CaseInvitation | undefined>;
+  getCaseInvitationsByCase(caseId: number): Promise<CaseInvitation[]>;
+  createCaseInvitation(invitation: InsertCaseInvitation): Promise<CaseInvitation>;
+  updateCaseInvitation(id: number, invitation: Partial<InsertCaseInvitation>): Promise<CaseInvitation | undefined>;
+  deleteCaseInvitation(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -48,10 +89,18 @@ export class MemStorage implements IStorage {
   private conservatees: Map<number, Conservatee>;
   private timeEntries: Map<number, TimeEntry>;
   private emailVerifications: Map<number, EmailVerification>;
+  private cases: Map<number, Case>;
+  private caseRoles: Map<number, CaseRole>;
+  private userCaseRoles: Map<number, UserCaseRole>;
+  private caseInvitations: Map<number, CaseInvitation>;
   private currentUserId: number;
   private currentConservateeId: number;
   private currentTimeEntryId: number;
   private currentEmailVerificationId: number;
+  private currentCaseId: number;
+  private currentCaseRoleId: number;
+  private currentUserCaseRoleId: number;
+  private currentCaseInvitationId: number;
 
   constructor() {
     this.users = new Map();
@@ -83,8 +132,9 @@ export class MemStorage implements IStorage {
       email: insertUser.email,
       passwordHash: insertUser.passwordHash || null,
       role: insertUser.role || "conservator",
+      globalRole: insertUser.globalRole || "conservator",
       oauthProvider: insertUser.oauthProvider || null,
-      emailVerified: false,
+      emailVerified: insertUser.emailVerified || false,
       createdAt: new Date()
     };
     this.users.set(id, user);

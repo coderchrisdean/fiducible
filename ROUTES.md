@@ -1,88 +1,176 @@
-# Route Documentation
+# API Routes Documentation
 
-## Frontend Routes (React Router)
+## Authentication Routes
 
-### Public Routes
-- `/` - Landing page with app introduction and navigation
-- `/login` - User authentication form
-- `/signup` - User registration form
-- `/*` - Not found page (catch-all)
+### POST /api/auth/signup
+- **Description**: Register a new user account
+- **Body**: `{ name: string, email: string, password: string }`
+- **Response**: `{ user: User, message: string }`
+- **Status Codes**: 200 (success), 400 (validation error), 409 (user exists)
+- **Features**: 
+  - Creates email verification token
+  - Sends verification email via Resend
+  - Returns user without password hash
 
-### Protected Routes (require Layout wrapper)
-- `/dashboard` - Main dashboard with overview and statistics
-- `/time-tracking` - Time entry management interface
-- `/conservatees` - Conservatee profile management
+### POST /api/auth/signin
+- **Description**: Authenticate user login
+- **Body**: `{ email: string, password: string }`
+- **Response**: `{ user: User }`
+- **Status Codes**: 200 (success), 401 (invalid credentials)
 
-## Backend API Routes
+## Email Verification Routes
 
-### Authentication Endpoints
-- `POST /api/auth/signup` - User registration
-  - Body: `{ name, email, password }`
-  - Returns: `{ user: UserObject }`
-  - Status: 200 (success), 400 (user exists/invalid data)
+### GET /api/verify-email
+- **Description**: Verify user email address using token
+- **Query Parameters**: `token: string`
+- **Response**: `{ message: string }`
+- **Status Codes**: 
+  - 200 (verified successfully)
+  - 400 (invalid/expired token, already verified)
+  - 404 (token not found)
+- **Features**:
+  - Validates token expiration (24 hours)
+  - Marks user as email verified
+  - Prevents duplicate verification
 
-- `POST /api/auth/signin` - User login
-  - Body: `{ email, password }`
-  - Returns: `{ user: UserObject }`
-  - Status: 200 (success), 401 (invalid credentials), 500 (server error)
+### POST /api/emails/resend
+- **Description**: Resend email verification
+- **Body**: `{ email: string }`
+- **Response**: `{ message: string }`
+- **Status Codes**: 
+  - 200 (email sent)
+  - 400 (already verified)
+  - 404 (user not found)
+  - 429 (rate limited - 60 seconds)
+- **Features**:
+  - Rate limiting (60 seconds between requests)
+  - Replaces existing unverified tokens
+  - Sends new verification email
 
-- `GET /api/auth/user` - Get current user session
-  - Returns: `{ id, name, email, role }`
-  - Status: 200 (authenticated), 401 (not authenticated)
+## User Profile Routes
 
-### Conservatee Management
-- `GET /api/conservatees` - List all conservatees for logged-in conservator
-  - Returns: `Conservatee[]`
-  - Status: 200 (success), 500 (server error)
+### GET /profile ⏳
+- **Description**: Retrieve current user profile and associated roles
+- **Response**: `{ user: User, globalRole: string, caseRoles: CaseRole[] }`
+- **Status Codes**: 200 (success), 401 (unauthorized)
+- **Authentication**: Required
 
-- `POST /api/conservatees` - Create new conservatee
-  - Body: `{ name, dateOfBirth, address, phone, email, notes }`
-  - Returns: `Conservatee`
-  - Status: 200 (success), 400 (invalid data)
+### PUT /profile ⏳
+- **Description**: Update user profile information and settings
+- **Body**: `{ name?: string, email?: string, preferences?: object }`
+- **Response**: `{ user: User }`
+- **Status Codes**: 200 (success), 400 (validation error), 401 (unauthorized)
+- **Authentication**: Required
 
-- `PUT /api/conservatees/:id` - Update existing conservatee
-  - Body: `Partial<ConservateeData>`
-  - Returns: `Conservatee`
-  - Status: 200 (success), 400 (invalid data), 404 (not found)
+## Case Management Routes
 
-- `DELETE /api/conservatees/:id` - Delete conservatee
-  - Returns: `{ message: "Conservatee deleted" }`
-  - Status: 200 (success), 404 (not found), 500 (server error)
+### POST /cases/:caseId/invitations ⏳
+- **Description**: Send case invitation email to specified user
+- **Parameters**: `caseId: number`
+- **Body**: `{ email: string, roleId: number, message?: string }`
+- **Response**: `{ invitation: Invitation }`
+- **Status Codes**: 200 (success), 400 (validation error), 403 (unauthorized), 404 (case not found)
+- **Authentication**: Required (case owner/admin)
 
-### Time Entry Management
-- `GET /api/time-entries` - List all time entries for logged-in conservator
-  - Returns: `TimeEntry[]`
-  - Status: 200 (success), 500 (server error)
+### GET /cases/:caseId/invitations ⏳
+- **Description**: List all pending invitations for a case
+- **Parameters**: `caseId: number`
+- **Response**: `{ invitations: Invitation[] }`
+- **Status Codes**: 200 (success), 403 (unauthorized), 404 (case not found)
+- **Authentication**: Required (case owner/admin)
 
-- `POST /api/time-entries` - Create new time entry
-  - Body: `{ conservateeId, date, startTime, endTime, description, category }`
-  - Returns: `TimeEntry`
-  - Status: 200 (success), 400 (invalid data)
+### DELETE /cases/:caseId/invitations/:invitationId ⏳
+- **Description**: Cancel a pending case invitation
+- **Parameters**: `caseId: number, invitationId: number`
+- **Response**: `{ message: string }`
+- **Status Codes**: 200 (success), 403 (unauthorized), 404 (invitation not found)
+- **Authentication**: Required (case owner/admin)
 
-- `PUT /api/time-entries/:id` - Update existing time entry
-  - Body: `Partial<TimeEntryData>`
-  - Returns: `TimeEntry`
-  - Status: 200 (success), 400 (invalid data), 404 (not found)
+### POST /invitations/:token/accept ⏳
+- **Description**: Accept case invitation using token from email
+- **Parameters**: `token: string`
+- **Response**: `{ caseRole: UserCaseRole }`
+- **Status Codes**: 200 (success), 400 (expired/invalid token), 404 (invitation not found)
+- **Authentication**: Required
 
-- `DELETE /api/time-entries/:id` - Delete time entry
-  - Returns: `{ message: "Time entry deleted" }`
-  - Status: 200 (success), 404 (not found), 500 (server error)
+## Conservatee Routes
 
-## Route Issues Identified
+### GET /api/conservatees
+- **Description**: Get all conservatees for authenticated user
+- **Response**: `{ conservatees: Conservatee[] }`
+- **Status Codes**: 200 (success), 401 (unauthorized)
+- **Authentication**: Required
 
-### Current Problems
-1. **Time Tracking Route**: Navigation to `/time-tracking` works but may have state management issues
-2. **Browser Back Button**: No proper history handling, pages don't refresh correctly
-3. **Authentication State**: Mock authentication doesn't persist across page refreshes
-4. **Error Handling**: Inconsistent error responses and status codes
+### POST /api/conservatees
+- **Description**: Create new conservatee
+- **Body**: `{ name: string, dob?: string, contactInfo?: string, caseNumber?: string, notes?: string }`
+- **Response**: `{ conservatee: Conservatee }`
+- **Status Codes**: 200 (success), 400 (validation error), 401 (unauthorized)
+- **Authentication**: Required
 
-### Routing Dependencies
-- **Frontend**: Wouter for client-side routing
-- **Backend**: Express.js with manual route definitions
-- **State**: TanStack Query for server state, React hooks for local state
+### PUT /api/conservatees/:id
+- **Description**: Update conservatee information
+- **Parameters**: `id: number`
+- **Body**: `{ name?: string, dob?: string, contactInfo?: string, caseNumber?: string, notes?: string }`
+- **Response**: `{ conservatee: Conservatee }`
+- **Status Codes**: 200 (success), 400 (validation error), 401 (unauthorized), 404 (not found)
+- **Authentication**: Required
 
-## Future Route Considerations
-- Protected route middleware for authentication checks
-- Dynamic routes for individual conservatee/time entry pages
-- API versioning strategy
-- Rate limiting and security headers
+### DELETE /api/conservatees/:id
+- **Description**: Delete conservatee
+- **Parameters**: `id: number`
+- **Response**: `{ message: string }`
+- **Status Codes**: 200 (success), 401 (unauthorized), 404 (not found)
+- **Authentication**: Required
+
+## Time Entry Routes
+
+### GET /api/time-entries
+- **Description**: Get all time entries for authenticated user
+- **Response**: `{ timeEntries: TimeEntry[] }`
+- **Status Codes**: 200 (success), 401 (unauthorized)
+- **Authentication**: Required
+
+### POST /api/time-entries
+- **Description**: Create new time entry
+- **Body**: `{ conservateeId?: number, date: string, taskDescription: string, memo?: string, timeSpent: string }`
+- **Response**: `{ timeEntry: TimeEntry }`
+- **Status Codes**: 200 (success), 400 (validation error), 401 (unauthorized)
+- **Authentication**: Required
+
+### PUT /api/time-entries/:id
+- **Description**: Update time entry
+- **Parameters**: `id: number`
+- **Body**: `{ conservateeId?: number, date?: string, taskDescription?: string, memo?: string, timeSpent?: string }`
+- **Response**: `{ timeEntry: TimeEntry }`
+- **Status Codes**: 200 (success), 400 (validation error), 401 (unauthorized), 404 (not found)
+- **Authentication**: Required
+
+### DELETE /api/time-entries/:id
+- **Description**: Delete time entry
+- **Parameters**: `id: number`
+- **Response**: `{ message: string }`
+- **Status Codes**: 200 (success), 401 (unauthorized), 404 (not found)
+- **Authentication**: Required
+
+## Route Status Legend
+- ✅ Implemented
+- ⏳ Planned
+- 🔄 In Progress
+
+## Authentication
+All protected routes require authentication via session cookies or Authorization header.
+Unauthorized requests return 401 status with `{ message: "Unauthorized" }`.
+
+## Error Handling
+All routes return consistent error responses:
+```json
+{
+  "message": "Error description",
+  "code": "ERROR_CODE" // Optional
+}
+```
+
+## Rate Limiting
+- Email resend: 1 request per 60 seconds per email
+- Future: General API rate limiting (100 requests/minute per user)

@@ -8,7 +8,8 @@ export const users = pgTable("users", {
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash"),
-  role: text("role").notNull().default("conservator"),
+  role: text("role").notNull().default("conservator"), // Legacy field, kept for compatibility
+  globalRole: text("global_role", { enum: ["admin", "conservator", "attorney", "observer"] }).notNull().default("conservator"),
   oauthProvider: text("oauth_provider"),
   emailVerified: boolean("email_verified").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -45,11 +46,53 @@ export const emailVerifications = pgTable("email_verifications", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const cases = pgTable("cases", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  status: text("status", { enum: ["active", "inactive", "closed"] }).notNull().default("active"),
+  createdBy: integer("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const caseRoles = pgTable("case_roles", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  permissions: text("permissions").notNull(), // JSON string of permissions
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const userCaseRoles = pgTable("user_case_roles", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  caseId: integer("case_id").notNull().references(() => cases.id),
+  roleId: integer("role_id").notNull().references(() => caseRoles.id),
+  invitedBy: integer("invited_by").notNull().references(() => users.id),
+  acceptedAt: timestamp("accepted_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const caseInvitations = pgTable("case_invitations", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull(),
+  caseId: integer("case_id").notNull().references(() => cases.id),
+  roleId: integer("role_id").notNull().references(() => caseRoles.id),
+  invitedBy: integer("invited_by").notNull().references(() => users.id),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  acceptedAt: timestamp("accepted_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many, one }) => ({
   conservatees: many(conservatees),
   timeEntries: many(timeEntries),
   emailVerification: one(emailVerifications),
+  createdCases: many(cases),
+  userCaseRoles: many(userCaseRoles),
+  sentInvitations: many(caseInvitations, { relationName: "invitedBy" }),
 }));
 
 export const conservateesRelations = relations(conservatees, ({ one, many }) => ({
@@ -74,6 +117,54 @@ export const timeEntriesRelations = relations(timeEntries, ({ one }) => ({
 export const emailVerificationsRelations = relations(emailVerifications, ({ one }) => ({
   user: one(users, {
     fields: [emailVerifications.userId],
+    references: [users.id],
+  }),
+}));
+
+export const casesRelations = relations(cases, ({ one, many }) => ({
+  createdBy: one(users, {
+    fields: [cases.createdBy],
+    references: [users.id],
+  }),
+  userCaseRoles: many(userCaseRoles),
+  invitations: many(caseInvitations),
+}));
+
+export const caseRolesRelations = relations(caseRoles, ({ many }) => ({
+  userCaseRoles: many(userCaseRoles),
+  invitations: many(caseInvitations),
+}));
+
+export const userCaseRolesRelations = relations(userCaseRoles, ({ one }) => ({
+  user: one(users, {
+    fields: [userCaseRoles.userId],
+    references: [users.id],
+  }),
+  case: one(cases, {
+    fields: [userCaseRoles.caseId],
+    references: [cases.id],
+  }),
+  role: one(caseRoles, {
+    fields: [userCaseRoles.roleId],
+    references: [caseRoles.id],
+  }),
+  inviter: one(users, {
+    fields: [userCaseRoles.invitedBy],
+    references: [users.id],
+  }),
+}));
+
+export const caseInvitationsRelations = relations(caseInvitations, ({ one }) => ({
+  case: one(cases, {
+    fields: [caseInvitations.caseId],
+    references: [cases.id],
+  }),
+  role: one(caseRoles, {
+    fields: [caseInvitations.roleId],
+    references: [caseRoles.id],
+  }),
+  inviter: one(users, {
+    fields: [caseInvitations.invitedBy],
     references: [users.id],
   }),
 }));
@@ -128,6 +219,26 @@ export const insertEmailVerificationSchema = createInsertSchema(emailVerificatio
   verified: true,
 });
 
+export const insertCaseSchema = createInsertSchema(cases).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCaseRoleSchema = createInsertSchema(caseRoles).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertUserCaseRoleSchema = createInsertSchema(userCaseRoles).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCaseInvitationSchema = createInsertSchema(caseInvitations).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Validation schemas
 const conservateeSchema = insertConservateeSchema.extend({
   name: z.string().min(1, "Name is required"),
@@ -154,3 +265,11 @@ export type InsertTimeEntry = z.infer<typeof insertTimeEntrySchema>;
 export type TimeEntry = typeof timeEntries.$inferSelect;
 export type InsertEmailVerification = z.infer<typeof insertEmailVerificationSchema>;
 export type EmailVerification = typeof emailVerifications.$inferSelect;
+export type InsertCase = z.infer<typeof insertCaseSchema>;
+export type Case = typeof cases.$inferSelect;
+export type InsertCaseRole = z.infer<typeof insertCaseRoleSchema>;
+export type CaseRole = typeof caseRoles.$inferSelect;
+export type InsertUserCaseRole = z.infer<typeof insertUserCaseRoleSchema>;
+export type UserCaseRole = typeof userCaseRoles.$inferSelect;
+export type InsertCaseInvitation = z.infer<typeof insertCaseInvitationSchema>;
+export type CaseInvitation = typeof caseInvitations.$inferSelect;
