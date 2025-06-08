@@ -589,6 +589,238 @@ export class MemStorage implements IStorage {
   async deleteCaseInvitation(id: number): Promise<boolean> {
     return this.caseInvitations.delete(id);
   }
+
+  // Document methods
+  async getDocument(id: number): Promise<Document | undefined> {
+    return this.documents.get(id);
+  }
+
+  async getDocumentsByCase(caseId: number, options?: {
+    folderId?: number;
+    tags?: string[];
+    search?: string;
+    page?: number;
+    limit?: number;
+    sortBy?: "name" | "date" | "size" | "downloads";
+    sortOrder?: "asc" | "desc";
+    archived?: boolean;
+  }): Promise<{
+    documents: Document[];
+    totalCount: number;
+    page: number;
+    totalPages: number;
+  }> {
+    const allDocuments = Array.from(this.documents.values()).filter(doc => doc.caseId === caseId);
+    let filteredDocuments = allDocuments;
+
+    // Apply filters
+    if (options?.folderId) {
+      filteredDocuments = filteredDocuments.filter(doc => doc.folderId === options.folderId);
+    }
+    if (options?.archived !== undefined) {
+      filteredDocuments = filteredDocuments.filter(doc => doc.isArchived === options.archived);
+    }
+    if (options?.search) {
+      filteredDocuments = filteredDocuments.filter(doc => 
+        doc.title.toLowerCase().includes(options.search!.toLowerCase()) ||
+        doc.description?.toLowerCase().includes(options.search!.toLowerCase())
+      );
+    }
+
+    const page = options?.page || 1;
+    const limit = options?.limit || 10;
+    const totalCount = filteredDocuments.length;
+    const totalPages = Math.ceil(totalCount / limit);
+    const startIndex = (page - 1) * limit;
+    const documents = filteredDocuments.slice(startIndex, startIndex + limit);
+
+    return { documents, totalCount, page, totalPages };
+  }
+
+  async createDocument(insertDocument: InsertDocument): Promise<Document> {
+    const document: Document = {
+      id: this.currentDocumentId++,
+      ...insertDocument,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.documents.set(document.id, document);
+    return document;
+  }
+
+  async updateDocument(id: number, updateData: Partial<InsertDocument>): Promise<Document | undefined> {
+    const existing = this.documents.get(id);
+    if (!existing) return undefined;
+    
+    const updated: Document = { 
+      ...existing, 
+      ...updateData, 
+      updatedAt: new Date() 
+    };
+    this.documents.set(id, updated);
+    return updated;
+  }
+
+  async deleteDocument(id: number): Promise<boolean> {
+    return this.documents.delete(id);
+  }
+
+  async searchDocuments(caseId: number, query: string, options?: {
+    tags?: string[];
+    folderId?: number;
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    documents: Document[];
+    totalCount: number;
+    searchTime: number;
+  }> {
+    const startTime = Date.now();
+    const allDocuments = Array.from(this.documents.values()).filter(doc => doc.caseId === caseId);
+    const searchResults = allDocuments.filter(doc => 
+      doc.name.toLowerCase().includes(query.toLowerCase()) ||
+      doc.description?.toLowerCase().includes(query.toLowerCase())
+    );
+    
+    const page = options?.page || 1;
+    const limit = options?.limit || 10;
+    const totalCount = searchResults.length;
+    const startIndex = (page - 1) * limit;
+    const documents = searchResults.slice(startIndex, startIndex + limit);
+    const searchTime = Date.now() - startTime;
+
+    return { documents, totalCount, searchTime };
+  }
+
+  // Document folder methods
+  async getDocumentFolder(id: number): Promise<DocumentFolder | undefined> {
+    return this.documentFolders.get(id);
+  }
+
+  async getDocumentFoldersByCase(caseId: number): Promise<DocumentFolder[]> {
+    return Array.from(this.documentFolders.values()).filter(folder => folder.caseId === caseId);
+  }
+
+  async createDocumentFolder(insertFolder: InsertDocumentFolder): Promise<DocumentFolder> {
+    const folder: DocumentFolder = {
+      id: this.currentDocumentFolderId++,
+      ...insertFolder,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.documentFolders.set(folder.id, folder);
+    return folder;
+  }
+
+  async updateDocumentFolder(id: number, updateData: Partial<InsertDocumentFolder>): Promise<DocumentFolder | undefined> {
+    const existing = this.documentFolders.get(id);
+    if (!existing) return undefined;
+    
+    const updated: DocumentFolder = { 
+      ...existing, 
+      ...updateData, 
+      updatedAt: new Date() 
+    };
+    this.documentFolders.set(id, updated);
+    return updated;
+  }
+
+  async deleteDocumentFolder(id: number): Promise<boolean> {
+    return this.documentFolders.delete(id);
+  }
+
+  // Document tag methods
+  async getDocumentTag(id: number): Promise<DocumentTag | undefined> {
+    return this.documentTags.get(id);
+  }
+
+  async getDocumentTagsByCase(caseId: number): Promise<DocumentTag[]> {
+    return Array.from(this.documentTags.values()).filter(tag => tag.caseId === caseId);
+  }
+
+  async createDocumentTag(insertTag: InsertDocumentTag): Promise<DocumentTag> {
+    const tag: DocumentTag = {
+      id: this.currentDocumentTagId++,
+      ...insertTag,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.documentTags.set(tag.id, tag);
+    return tag;
+  }
+
+  async updateDocumentTag(id: number, updateData: Partial<InsertDocumentTag>): Promise<DocumentTag | undefined> {
+    const existing = this.documentTags.get(id);
+    if (!existing) return undefined;
+    
+    const updated: DocumentTag = { 
+      ...existing, 
+      ...updateData, 
+      updatedAt: new Date() 
+    };
+    this.documentTags.set(id, updated);
+    return updated;
+  }
+
+  async deleteDocumentTag(id: number): Promise<boolean> {
+    return this.documentTags.delete(id);
+  }
+
+  // Document tag relation methods
+  async addTagsToDocument(documentId: number, tagIds: number[]): Promise<DocumentTagRelation[]> {
+    const relations: DocumentTagRelation[] = [];
+    for (const tagId of tagIds) {
+      const relation: DocumentTagRelation = {
+        id: this.currentDocumentTagRelationId++,
+        documentId,
+        tagId,
+        createdAt: new Date()
+      };
+      this.documentTagRelations.set(relation.id, relation);
+      relations.push(relation);
+    }
+    return relations;
+  }
+
+  async removeTagFromDocument(documentId: number, tagId: number): Promise<boolean> {
+    const relation = Array.from(this.documentTagRelations.values())
+      .find(rel => rel.documentId === documentId && rel.tagId === tagId);
+    if (relation) {
+      return this.documentTagRelations.delete(relation.id);
+    }
+    return false;
+  }
+
+  async getDocumentTags(documentId: number): Promise<DocumentTag[]> {
+    const relations = Array.from(this.documentTagRelations.values())
+      .filter(rel => rel.documentId === documentId);
+    const tagIds = relations.map(rel => rel.tagId);
+    return tagIds.map(id => this.documentTags.get(id)).filter(Boolean) as DocumentTag[];
+  }
+
+  // Document access log methods
+  async logDocumentAccess(insertLog: InsertDocumentAccessLog): Promise<DocumentAccessLog> {
+    const log: DocumentAccessLog = {
+      id: this.currentDocumentAccessLogId++,
+      ...insertLog,
+      accessedAt: new Date()
+    };
+    this.documentAccessLogs.set(log.id, log);
+    return log;
+  }
+
+  async getDocumentAccessLogs(documentId: number): Promise<DocumentAccessLog[]> {
+    return Array.from(this.documentAccessLogs.values())
+      .filter(log => log.documentId === documentId);
+  }
+
+  async incrementDownloadCount(documentId: number): Promise<void> {
+    const document = this.documents.get(documentId);
+    if (document) {
+      document.downloadCount = (document.downloadCount || 0) + 1;
+      this.documents.set(documentId, document);
+    }
+  }
 }
 
 export const storage = new MemStorage();

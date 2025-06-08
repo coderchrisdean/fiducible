@@ -532,7 +532,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Document upload
   app.post("/api/cases/:caseId/documents/upload", upload.array('files', 10), async (req, res) => {
     try {
-      const userId = req.user?.id;
+      const userId = (req.user as any)?.id;
       if (!userId) {
         return res.status(401).json({ message: "Unauthorized" });
       }
@@ -596,7 +596,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // List documents
   app.get("/api/cases/:caseId/documents", async (req, res) => {
     try {
-      const userId = req.user?.id;
+      const userId = (req.user as any)?.id;
       if (!userId) {
         return res.status(401).json({ message: "Unauthorized" });
       }
@@ -650,7 +650,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Download document
   app.get("/api/documents/:id/download", async (req, res) => {
     try {
-      const userId = req.user?.id;
+      const userId = (req.user as any)?.id;
       if (!userId) {
         return res.status(401).json({ message: "Unauthorized" });
       }
@@ -694,7 +694,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Search documents
   app.get("/api/cases/:caseId/documents/search", async (req, res) => {
     try {
-      const userId = req.user?.id;
+      const userId = (req.user as any)?.id;
       if (!userId) {
         return res.status(401).json({ message: "Unauthorized" });
       }
