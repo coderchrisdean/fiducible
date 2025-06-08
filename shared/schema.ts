@@ -10,6 +10,7 @@ export const users = pgTable("users", {
   passwordHash: text("password_hash"),
   role: text("role").notNull().default("conservator"),
   oauthProvider: text("oauth_provider"),
+  emailVerified: boolean("email_verified").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -35,10 +36,20 @@ export const timeEntries = pgTable("time_entries", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const emailVerifications = pgTable("email_verifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  verified: boolean("verified").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Relations
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ many, one }) => ({
   conservatees: many(conservatees),
   timeEntries: many(timeEntries),
+  emailVerification: one(emailVerifications),
 }));
 
 export const conservateesRelations = relations(conservatees, ({ one, many }) => ({
@@ -57,6 +68,13 @@ export const timeEntriesRelations = relations(timeEntries, ({ one }) => ({
   conservatee: one(conservatees, {
     fields: [timeEntries.conservateeId],
     references: [conservatees.id],
+  }),
+}));
+
+export const emailVerificationsRelations = relations(emailVerifications, ({ one }) => ({
+  user: one(users, {
+    fields: [emailVerifications.userId],
+    references: [users.id],
   }),
 }));
 
@@ -106,6 +124,30 @@ export const insertTimeEntrySchema = createInsertSchema(timeEntries).pick({
   timeSpent: true,
 });
 
+export const insertEmailVerificationSchema = createInsertSchema(emailVerifications).pick({
+  userId: true,
+  token: true,
+  expiresAt: true,
+  verified: true,
+});
+
+// Validation schemas
+const conservateeSchema = insertConservateeSchema.extend({
+  name: z.string().min(1, "Name is required"),
+});
+
+const timeEntrySchema = insertTimeEntrySchema.extend({
+  taskDescription: z.string().min(1, "Task description is required"),
+  timeSpent: z.string().min(1, "Time spent is required"),
+});
+
+const loginSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(1, "Password is required"),
+});
+
+export { conservateeSchema, timeEntrySchema, loginSchema };
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -113,3 +155,5 @@ export type InsertConservatee = z.infer<typeof insertConservateeSchema>;
 export type Conservatee = typeof conservatees.$inferSelect;
 export type InsertTimeEntry = z.infer<typeof insertTimeEntrySchema>;
 export type TimeEntry = typeof timeEntries.$inferSelect;
+export type InsertEmailVerification = z.infer<typeof insertEmailVerificationSchema>;
+export type EmailVerification = typeof emailVerifications.$inferSelect;

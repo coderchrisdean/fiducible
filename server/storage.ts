@@ -2,12 +2,15 @@ import {
   users, 
   conservatees, 
   timeEntries, 
+  emailVerifications,
   type User, 
   type InsertUser, 
   type Conservatee, 
   type InsertConservatee, 
   type TimeEntry, 
-  type InsertTimeEntry 
+  type InsertTimeEntry,
+  type EmailVerification,
+  type InsertEmailVerification
 } from "@shared/schema";
 
 export interface IStorage {
@@ -15,6 +18,7 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined>;
   
   // Conservatee methods
   getConservatee(id: number): Promise<Conservatee | undefined>;
@@ -30,23 +34,34 @@ export interface IStorage {
   createTimeEntry(timeEntry: InsertTimeEntry): Promise<TimeEntry>;
   updateTimeEntry(id: number, timeEntry: Partial<InsertTimeEntry>): Promise<TimeEntry | undefined>;
   deleteTimeEntry(id: number): Promise<boolean>;
+  
+  // Email verification methods
+  getEmailVerification(token: string): Promise<EmailVerification | undefined>;
+  getEmailVerificationByUserId(userId: number): Promise<EmailVerification | undefined>;
+  createEmailVerification(verification: InsertEmailVerification): Promise<EmailVerification>;
+  updateEmailVerification(id: number, verification: Partial<InsertEmailVerification>): Promise<EmailVerification | undefined>;
+  deleteEmailVerification(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private conservatees: Map<number, Conservatee>;
   private timeEntries: Map<number, TimeEntry>;
+  private emailVerifications: Map<number, EmailVerification>;
   private currentUserId: number;
   private currentConservateeId: number;
   private currentTimeEntryId: number;
+  private currentEmailVerificationId: number;
 
   constructor() {
     this.users = new Map();
     this.conservatees = new Map();
     this.timeEntries = new Map();
+    this.emailVerifications = new Map();
     this.currentUserId = 1;
     this.currentConservateeId = 1;
     this.currentTimeEntryId = 1;
+    this.currentEmailVerificationId = 1;
   }
 
   // User methods
@@ -69,6 +84,7 @@ export class MemStorage implements IStorage {
       passwordHash: insertUser.passwordHash || null,
       role: insertUser.role || "conservator",
       oauthProvider: insertUser.oauthProvider || null,
+      emailVerified: false,
       createdAt: new Date()
     };
     this.users.set(id, user);
