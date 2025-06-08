@@ -25,6 +25,8 @@ interface DocumentUploadProps {
 }
 
 export function DocumentUpload({ caseId, folderId, onUploadComplete, onClose }: DocumentUploadProps) {
+  console.log('[DocumentUpload] [COMPONENT_MOUNT] [' + new Date().toISOString() + '] Component mounted for case:', caseId, 'folder:', folderId);
+  
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [description, setDescription] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -32,11 +34,13 @@ export function DocumentUpload({ caseId, folderId, onUploadComplete, onClose }: 
   const queryClient = useQueryClient();
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
+    console.log('[DocumentUpload] [FILE_DROP] [' + new Date().toISOString() + '] Files dropped:', acceptedFiles.length, 'files');
     const newFiles = acceptedFiles.map(file => ({
       ...file,
       preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
       progress: 0
     }));
+    console.log('[DocumentUpload] [FILE_DROP] [' + new Date().toISOString() + '] Processed files:', newFiles.map(f => ({ name: f.name, size: f.size, type: f.type })));
     setFiles(prev => [...prev, ...newFiles]);
   }, []);
 
@@ -82,12 +86,14 @@ export function DocumentUpload({ caseId, folderId, onUploadComplete, onClose }: 
       return response.json();
     },
     onSuccess: (data) => {
+      console.log('[DocumentUpload] [UPLOAD_SUCCESS] [' + new Date().toISOString() + '] Upload completed successfully:', data);
       toast({
         title: "Upload successful",
         description: data.message
       });
       
       // Invalidate and refetch documents
+      console.log('[DocumentUpload] [CACHE_INVALIDATE] [' + new Date().toISOString() + '] Invalidating document cache for case:', caseId);
       queryClient.invalidateQueries({ queryKey: ['/api/cases', caseId, 'documents'] });
       
       // Clear form
@@ -98,6 +104,7 @@ export function DocumentUpload({ caseId, folderId, onUploadComplete, onClose }: 
       onUploadComplete?.();
     },
     onError: (error: Error) => {
+      console.error('[DocumentUpload] [UPLOAD_ERROR] [' + new Date().toISOString() + '] Upload failed:', error);
       toast({
         title: "Upload failed",
         description: error.message,
@@ -108,7 +115,9 @@ export function DocumentUpload({ caseId, folderId, onUploadComplete, onClose }: 
   });
 
   const handleUpload = async () => {
+    console.log('[DocumentUpload] [UPLOAD_START] [' + new Date().toISOString() + '] Starting upload process');
     if (files.length === 0) {
+      console.log('[DocumentUpload] [UPLOAD_ERROR] [' + new Date().toISOString() + '] No files selected for upload');
       toast({
         title: "No files selected",
         description: "Please select files to upload",
@@ -117,6 +126,7 @@ export function DocumentUpload({ caseId, folderId, onUploadComplete, onClose }: 
       return;
     }
 
+    console.log('[DocumentUpload] [UPLOAD_START] [' + new Date().toISOString() + '] Uploading', files.length, 'files to case:', caseId);
     setUploading(true);
 
     const formData = new FormData();
@@ -132,6 +142,7 @@ export function DocumentUpload({ caseId, folderId, onUploadComplete, onClose }: 
       formData.append('folderId', folderId.toString());
     }
 
+    console.log('[DocumentUpload] [UPLOAD_SUBMIT] [' + new Date().toISOString() + '] Submitting form data to server');
     uploadMutation.mutate(formData);
   };
 

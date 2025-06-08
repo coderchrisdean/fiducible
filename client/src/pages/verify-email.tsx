@@ -3,14 +3,23 @@ import { useLocation, useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { CheckCircle, XCircle, Loader2, Mail } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function VerifyEmail() {
+  console.log('[VerifyEmail] [ROUTE_ENTRY] [' + new Date().toISOString() + '] Entering verify email page');
+  
   const [, setLocation] = useLocation();
   const [, params] = useRoute("/verify-email");
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState("");
+  const [showResendForm, setShowResendForm] = useState(false);
+  const [email, setEmail] = useState("");
+  const [resending, setResending] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     const verifyEmail = async () => {
@@ -47,7 +56,53 @@ export default function VerifyEmail() {
   }, []);
 
   const handleContinue = () => {
+    console.log('[VerifyEmail] [NAVIGATE] [' + new Date().toISOString() + '] Navigating to login');
     setLocation("/login");
+  };
+
+  const handleResendEmail = async () => {
+    if (!email) {
+      toast({
+        title: "Email Required",
+        description: "Please enter your email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    console.log('[VerifyEmail] [RESEND_EMAIL] [' + new Date().toISOString() + '] Attempting to resend email to:', email);
+    setResending(true);
+
+    try {
+      const response = await apiRequest("POST", "/api/emails/resend", { email });
+      if (response.ok) {
+        const data = await response.json();
+        console.log('[VerifyEmail] [RESEND_EMAIL] [' + new Date().toISOString() + '] Email resent successfully');
+        toast({
+          title: "Email Sent",
+          description: data.message || "Verification email sent successfully",
+        });
+        setShowResendForm(false);
+        setEmail("");
+      } else {
+        const errorData = await response.json();
+        console.error('[VerifyEmail] [RESEND_EMAIL] [' + new Date().toISOString() + '] Failed to resend email:', errorData.message);
+        toast({
+          title: "Failed to Send",
+          description: errorData.message || "Failed to send verification email",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('[VerifyEmail] [RESEND_EMAIL] [' + new Date().toISOString() + '] Error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send verification email. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setResending(false);
+    }
   };
 
   return (
@@ -99,16 +154,64 @@ export default function VerifyEmail() {
                 </Alert>
               </div>
               <div className="space-y-3">
-                <Button 
-                  onClick={handleContinue}
-                  variant="outline"
-                  className="w-full"
-                >
-                  Go to Login
-                </Button>
-                <p className="text-xs text-center text-gray-500 dark:text-gray-400">
-                  You can request a new verification email from the login page
-                </p>
+                {!showResendForm ? (
+                  <>
+                    <Button 
+                      onClick={() => setShowResendForm(true)}
+                      className="w-full"
+                    >
+                      <Mail className="h-4 w-4 mr-2" />
+                      Resend Verification Email
+                    </Button>
+                    <Button 
+                      onClick={handleContinue}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      Go to Login
+                    </Button>
+                  </>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="resend-email">Email Address</Label>
+                      <Input
+                        id="resend-email"
+                        type="email"
+                        placeholder="Enter your email address"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        disabled={resending}
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={handleResendEmail}
+                        disabled={resending}
+                        className="flex-1"
+                      >
+                        {resending ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Sending...
+                          </>
+                        ) : (
+                          <>
+                            <Mail className="h-4 w-4 mr-2" />
+                            Send Email
+                          </>
+                        )}
+                      </Button>
+                      <Button 
+                        onClick={() => setShowResendForm(false)}
+                        variant="outline"
+                        disabled={resending}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           )}
