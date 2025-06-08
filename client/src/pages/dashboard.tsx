@@ -111,12 +111,12 @@ export default function Dashboard() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Recent Time Entries */}
-        <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">Recent Time Entries</h3>
-            <p className="text-gray-600">Your most recent conservatorship activities</p>
-          </div>
-          <div>
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Recent Time Entries</CardTitle>
+            <CardDescription>Your most recent conservatorship activities</CardDescription>
+          </CardHeader>
+          <CardContent>
             {timeEntriesLoading ? (
               <div className="space-y-3">
                 {[...Array(5)].map((_, i) => (
@@ -173,7 +173,7 @@ export default function Dashboard() {
         </Card>
 
         {/* Conservatees Summary */}
-        <Card className="col-span-3">
+        <Card>
           <CardHeader>
             <CardTitle>Your Conservatees</CardTitle>
             <CardDescription>

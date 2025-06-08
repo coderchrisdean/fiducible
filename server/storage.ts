@@ -190,6 +190,11 @@ export class MemStorage implements IStorage {
     this.caseRoles = new Map();
     this.userCaseRoles = new Map();
     this.caseInvitations = new Map();
+    this.documents = new Map();
+    this.documentFolders = new Map();
+    this.documentTags = new Map();
+    this.documentTagRelations = new Map();
+    this.documentAccessLogs = new Map();
     this.currentUserId = 1;
     this.currentConservateeId = 1;
     this.currentTimeEntryId = 1;
@@ -198,6 +203,11 @@ export class MemStorage implements IStorage {
     this.currentCaseRoleId = 1;
     this.currentUserCaseRoleId = 1;
     this.currentCaseInvitationId = 1;
+    this.currentDocumentId = 1;
+    this.currentDocumentFolderId = 1;
+    this.currentDocumentTagId = 1;
+    this.currentDocumentTagRelationId = 1;
+    this.currentDocumentAccessLogId = 1;
     
     // Initialize default case roles
     this.initializeDefaultCaseRoles();
