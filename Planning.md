@@ -81,6 +81,49 @@
 
      * Daily and weekly summaries
 
+8. **Email Verification & Resend**
+
+   * **Resend API Integration**:
+     * Configure Resend service for transactional emails
+     * Environment variables: RESEND_API_KEY, FROM_EMAIL
+     * Email templates for verification and invitations
+   * **EmailVerification Table Schema**:
+     * id, userId, token, expiresAt, verified, createdAt
+     * One-to-one relationship with User table
+   * **Verification Flow**:
+     * Send verification email on signup
+     * Email contains verification link with token
+     * Token validation and account activation
+   * **Front-end "Resend Email" Button**:
+     * Display on unverified account dashboard
+     * Rate limiting (1 resend per 60 seconds)
+     * Success/error toast notifications
+     * Automatic hide after successful verification
+
+9. **User Profiles & Roles**
+
+   * **Global Role System**:
+     * `globalRole` field on User table (admin, conservator, attorney, observer)
+     * Global permissions for system-wide features
+     * Admin role for user management and system settings
+   * **Case-Based Role System**:
+     * **Case Table**: id, name, description, status, createdBy, createdAt
+     * **CaseRole Table**: id, name, permissions (JSON), description
+     * **UserCaseRole Table**: id, userId, caseId, roleId, invitedBy, acceptedAt
+   * **API Endpoints**:
+     * `GET /profile` - Retrieve current user profile and roles
+     * `PUT /profile` - Update user profile information
+     * `POST /cases/:caseId/invitations` - Send case invitation to user
+     * `GET /cases/:caseId/invitations` - List pending invitations for case
+     * `DELETE /cases/:caseId/invitations/:invitationId` - Cancel invitation
+     * `POST /invitations/:token/accept` - Accept case invitation
+   * **Front-end UI Components**:
+     * Profile page with role display and edit capabilities
+     * Case invitation modal with email input and role selection
+     * Role-based navigation and feature visibility
+     * Invitation management interface for case owners
+     * Scoped views based on user's role within each case
+
 ## Daily Feature Rollout Guidelines
 
 * **Feature Backlog**: Maintain `FEATURES.md` for upcoming items.
@@ -132,6 +175,34 @@
 
    * Build TimeEntry form and listing
    * Implement time snapping utility
+
+## Documentation Updates
+
+### FEATURES.md Backlog Items
+
+* **Email Verification & Resend**
+  - Priority 2: Core Features
+  - Resend API integration for transactional emails
+  - Email verification flow with token-based validation
+  - Front-end resend functionality with rate limiting
+  - Estimated effort: 6-8 hours
+
+* **User Profiles & Invitations**
+  - Priority 2: Core Features  
+  - Global role system (admin, conservator, attorney, observer)
+  - Case-based role management with granular permissions
+  - Invitation system for case collaboration
+  - Profile management interface
+  - Estimated effort: 12-15 hours
+
+### ROUTES.md New Endpoints
+
+* `GET /profile` - Retrieve current user profile and associated roles
+* `PUT /profile` - Update user profile information and settings
+* `POST /cases/:caseId/invitations` - Send case invitation email to specified user
+* `GET /cases/:caseId/invitations` - List all pending invitations for a case
+* `DELETE /cases/:caseId/invitations/:invitationId` - Cancel a pending case invitation
+* `POST /invitations/:token/accept` - Accept case invitation using token from email
 
 ---
 
