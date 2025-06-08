@@ -11,7 +11,7 @@
 - **Backend**: Express.js with Node.js
 - **Database**: PostgreSQL with Drizzle ORM
 - **UI Framework**: Shadcn/ui components with Tailwind CSS
-- **Authentication**: Passport.js with local strategy
+- **Authentication**: JWT-based authentication with bcrypt password hashing
 - **State Management**: TanStack Query for server state, React hooks for local state
 
 ## Architecture Guidelines
@@ -36,9 +36,10 @@
 ## Key Features Implemented
 
 ### 1. Authentication System
-- User registration and login
-- Session management with Passport.js
-- Protected routes with authentication middleware
+- JWT-based user registration and login
+- Token-based session management stored in localStorage
+- Protected routes with JWT token validation middleware
+- Password hashing with bcrypt for security
 
 ### 2. Dashboard
 - Overview of conservatee cases
@@ -147,12 +148,68 @@
 - Implement proper form validation
 - Minimize unnecessary re-renders
 
+## Authentication System
+
+### Overview
+The application uses JWT (JSON Web Token) based authentication for secure user management. This system replaced the previous Replit Auth implementation to provide more control and flexibility.
+
+### Backend Implementation
+
+#### JWT Authentication Module (`server/jwtAuth.ts`)
+- **Token Generation**: Creates JWT tokens with user data (id, email, name, globalRole)
+- **Token Verification**: Validates incoming JWT tokens and extracts user information
+- **Password Security**: Uses bcrypt with 10 salt rounds for password hashing
+- **Middleware**: `authenticateToken` function validates Bearer tokens on protected routes
+
+#### Authentication Routes
+- `POST /api/login` - User login with email/password
+- `POST /api/register` - User registration with email/password
+- `GET /api/user` - Get current authenticated user
+- `POST /api/logout` - Client-side logout (token removal)
+
+#### Environment Variables
+- `JWT_SECRET` - Secret key for JWT signing (defaults to "your-secret-key-here")
+- Token expiration set to 7 days
+
+### Frontend Implementation
+
+#### Authentication Hook (`client/src/hooks/useAuth.ts`)
+- **State Management**: Uses TanStack Query for user state
+- **Token Storage**: Stores JWT tokens in localStorage as 'auth_token'
+- **Mutations**: Provides loginMutation, registerMutation for auth actions
+- **Logout**: Clears token and redirects to home page
+
+#### Request Authentication (`client/src/lib/queryClient.ts`)
+- **Authorization Headers**: Automatically adds Bearer token to all API requests
+- **Token Management**: Reads token from localStorage for each request
+- **Error Handling**: Handles 401 responses for token validation
+
+### Protected Routes
+All document management and user-specific routes require authentication:
+- Document upload, download, access control
+- User profile and settings
+- Case management operations
+
+### Security Features
+- **Password Hashing**: bcrypt with salt rounds for secure password storage
+- **Token Expiration**: 7-day expiration for JWT tokens
+- **Bearer Token Authentication**: Standard Authorization header format
+- **Client-side Token Storage**: localStorage for session persistence
+
+### Migration from Replit Auth
+- Removed OpenID Connect dependencies
+- Replaced session-based auth with token-based auth
+- Updated all protected routes to use JWT middleware
+- Modified frontend to handle token-based authentication
+
 ## Security Considerations
 
 - Never expose sensitive data in frontend code
-- Use secure session management
+- JWT tokens stored securely in localStorage
+- All passwords hashed with bcrypt before storage
 - Validate all user inputs on both client and server
 - Implement proper authentication checks on protected routes
+- Token-based authentication prevents CSRF attacks
 
 ## Implementation Plan & Checkpoints
 
