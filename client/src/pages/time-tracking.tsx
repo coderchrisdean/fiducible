@@ -22,10 +22,13 @@ import { cn } from "@/lib/utils";
 import type { TimeEntry, Conservatee } from "@shared/schema";
 
 const timeEntrySchema = z.object({
-  date: z.string(),
+  date: z.string().min(1, "Date is required"),
   taskDescription: z.string().min(1, "Task description is required"),
   memo: z.string().optional(),
-  timeSpent: z.string().min(1, "Time spent is required"),
+  timeSpent: z.string().min(1, "Time spent is required").refine((val) => {
+    const num = parseFloat(val);
+    return !isNaN(num) && num >= 0.1;
+  }, "Time must be at least 0.1 hours (6 minutes)"),
   conservateeId: z.string().optional(),
 });
 
@@ -68,11 +71,18 @@ export default function TimeTracking() {
     mutationFn: async (data: TimeEntryForm) => {
       const timeSpentDecimal = roundToSixMinutes(parseFloat(data.timeSpent));
       const payload = {
-        ...data,
+        date: data.date,
+        taskDescription: data.taskDescription,
+        memo: data.memo || null,
         timeSpent: timeSpentDecimal.toString(),
         conservateeId: data.conservateeId ? parseInt(data.conservateeId) : null,
       };
+      console.log("Creating time entry with payload:", payload);
       const response = await apiRequest("POST", "/api/time-entries", payload);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to create time entry");
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -102,11 +112,18 @@ export default function TimeTracking() {
     mutationFn: async ({ id, data }: { id: number; data: TimeEntryForm }) => {
       const timeSpentDecimal = roundToSixMinutes(parseFloat(data.timeSpent));
       const payload = {
-        ...data,
+        date: data.date,
+        taskDescription: data.taskDescription,
+        memo: data.memo || null,
         timeSpent: timeSpentDecimal.toString(),
         conservateeId: data.conservateeId ? parseInt(data.conservateeId) : null,
       };
+      console.log("Updating time entry with payload:", payload);
       const response = await apiRequest("PUT", `/api/time-entries/${id}`, payload);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to update time entry");
+      }
       return response.json();
     },
     onSuccess: () => {
