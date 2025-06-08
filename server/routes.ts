@@ -18,7 +18,11 @@ import { db } from "./db";
 import { eq, and, or, ilike } from "drizzle-orm";
 import { isAuthenticated } from "./replitAuth";
 import { documentStorage } from "./documentStorage";
-import { fileStorage, upload } from "./fileStorage";
+import { LocalFileStorage } from "./fileStorage";
+import multer from "multer";
+
+const fileStorage = new LocalFileStorage();
+const upload = multer({ storage: multer.memoryStorage() });
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
@@ -710,8 +714,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fileBuffer = await fileStorage.getFile(document.filePath);
 
       res.setHeader('Content-Disposition', `attachment; filename="${document.fileName}"`);
-      res.setHeader('Content-Type', document.mimeType);
-      res.setHeader('Content-Length', document.fileSize);
+      res.setHeader('Content-Type', document.mimeType || 'application/octet-stream');
+      res.setHeader('Content-Length', document.fileSize || 0);
       
       res.send(fileBuffer);
     } catch (error) {
@@ -782,7 +786,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // GET /documents - List documents where user is owner or has access
   app.get("/api/documents", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user!.id;
+      const userId = (req.user as any).id;
       const { caseId } = req.query;
 
       if (!caseId) {
@@ -825,7 +829,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // POST /documents/upload - Upload document with structured path
   app.post("/api/documents/upload", isAuthenticated, upload.array('files', 10), async (req, res) => {
     try {
-      const userId = req.user!.id;
+      const userId = (req.user as any).id;
       const { caseId, title } = req.body;
       const files = req.files as Express.Multer.File[];
 
@@ -876,7 +880,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // POST /documents/:id/grant-access - Grant access to document
   app.post("/api/documents/:id/grant-access", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user!.id;
+      const userId = (req.user as any).id;
       const documentId = parseInt(req.params.id);
       const { userId: targetUserId } = req.body;
 
@@ -917,7 +921,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // POST /documents/:id/revoke-access - Revoke access to document
   app.post("/api/documents/:id/revoke-access", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user!.id;
+      const userId = (req.user as any).id;
       const documentId = parseInt(req.params.id);
       const { userId: targetUserId } = req.body;
 
@@ -948,7 +952,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // GET /documents/:id/download - Download document with access validation
   app.get("/api/documents/:id/download", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user!.id;
+      const userId = (req.user as any).id;
       const documentId = parseInt(req.params.id);
 
       // Check if user owns document or has access
@@ -987,7 +991,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // GET /documents/search - Search documents within accessible scope
   app.get("/api/documents/search", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user!.id;
+      const userId = (req.user as any).id;
       const { query, caseId } = req.query;
 
       if (!query || !caseId) {

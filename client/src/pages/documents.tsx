@@ -1,177 +1,358 @@
-import { useState } from 'react';
-import { useParams } from 'wouter';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { DocumentUpload } from '@/components/document-upload';
-import { DocumentList } from '@/components/document-list';
-import { Upload, Search, FolderPlus, Filter } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Upload, Download, Share, Search, UserPlus, UserMinus, FileText, Calendar } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
-export default function Documents() {
-  const { caseId } = useParams<{ caseId: string }>();
-  const [showUpload, setShowUpload] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFolder, setSelectedFolder] = useState<number | undefined>();
+interface Document {
+  id: number;
+  ownerId: number;
+  caseId: number;
+  title: string;
+  fileName: string;
+  filePath: string;
+  uploadedAt: string;
+  fileSize?: number;
+  mimeType?: string;
+}
 
-  const caseIdNum = parseInt(caseId || '0');
+interface User {
+  id: number;
+  name: string;
+  email: string;
+}
 
-  // Fetch case details for breadcrumb
-  const { data: caseData } = useQuery({
-    queryKey: ['/api/cases', caseIdNum],
-    queryFn: async () => {
-      const response = await fetch(`/api/cases/${caseIdNum}`, {
-        credentials: 'include'
-      });
-      if (!response.ok) throw new Error('Failed to fetch case');
-      return response.json();
-    },
-    enabled: !!caseIdNum
+export default function DocumentsPage() {
+  const [selectedCaseId, setSelectedCaseId] = useState<string>("1");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [accessDialogOpen, setAccessDialogOpen] = useState(false);
+  const [selectedDocumentId, setSelectedDocumentId] = useState<number | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+  const [uploadTitle, setUploadTitle] = useState("");
+
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Fetch documents
+  const { data: documentsData, isLoading: documentsLoading } = useQuery({
+    queryKey: ["/api/documents", selectedCaseId],
+    queryFn: () => apiRequest(`/api/documents?caseId=${selectedCaseId}`),
+    enabled: !!selectedCaseId,
   });
 
-  if (!caseIdNum) {
-    return (
-      <div className="container mx-auto p-6">
-        <Card>
-          <CardContent className="p-6 text-center">
-            <p className="text-destructive">Invalid case ID</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  // Fetch users for access control
+  const { data: usersData } = useQuery({
+    queryKey: ["/api/users"],
+    queryFn: () => apiRequest("/api/users"),
+  });
+
+  // Search documents
+  const { data: searchResults, isLoading: searchLoading } = useQuery({
+    queryKey: ["/api/documents/search", searchQuery, selectedCaseId],
+    queryFn: () => apiRequest(`/api/documents/search?query=${searchQuery}&caseId=${selectedCaseId}`),
+    enabled: !!searchQuery && searchQuery.length > 2,
+  });
+
+  // Upload documents mutation
+  const uploadMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const response = await fetch("/api/documents/upload", {
+        method: "POST",
+        body: formData,
+      });
+      if (!response.ok) {
+        throw new Error("Upload failed");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Documents uploaded successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
+      setUploadDialogOpen(false);
+      setSelectedFiles(null);
+      setUploadTitle("");
+    },
+    onError: () => {
+      toast({ title: "Upload failed", variant: "destructive" });
+    },
+  });
+
+  // Grant access mutation
+  const grantAccessMutation = useMutation({
+    mutationFn: async ({ documentId, userId }: { documentId: number; userId: string }) => {
+      return apiRequest(`/api/documents/${documentId}/grant-access`, {
+        method: "POST",
+        body: JSON.stringify({ userId: parseInt(userId) }),
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Access granted successfully" });
+      setAccessDialogOpen(false);
+      setSelectedUserId("");
+    },
+    onError: () => {
+      toast({ title: "Failed to grant access", variant: "destructive" });
+    },
+  });
+
+  // Revoke access mutation
+  const revokeAccessMutation = useMutation({
+    mutationFn: async ({ documentId, userId }: { documentId: number; userId: string }) => {
+      return apiRequest(`/api/documents/${documentId}/revoke-access`, {
+        method: "POST",
+        body: JSON.stringify({ userId: parseInt(userId) }),
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Access revoked successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to revoke access", variant: "destructive" });
+    },
+  });
+
+  const handleUpload = () => {
+    if (!selectedFiles || selectedFiles.length === 0) {
+      toast({ title: "Please select files to upload", variant: "destructive" });
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("caseId", selectedCaseId);
+    if (uploadTitle) {
+      formData.append("title", uploadTitle);
+    }
+    
+    Array.from(selectedFiles).forEach((file) => {
+      formData.append("files", file);
+    });
+
+    uploadMutation.mutate(formData);
+  };
+
+  const handleDownload = (documentId: number) => {
+    window.open(`/api/documents/${documentId}/download`, '_blank');
+  };
+
+  const handleGrantAccess = () => {
+    if (!selectedDocumentId || !selectedUserId) {
+      toast({ title: "Please select a user", variant: "destructive" });
+      return;
+    }
+    grantAccessMutation.mutate({ documentId: selectedDocumentId, userId: selectedUserId });
+  };
+
+  const handleRevokeAccess = (documentId: number, userId: string) => {
+    revokeAccessMutation.mutate({ documentId, userId });
+  };
+
+  const formatFileSize = (bytes?: number) => {
+    if (!bytes) return "Unknown size";
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return `${Math.round(bytes / Math.pow(1024, i) * 100) / 100} ${sizes[i]}`;
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString();
+  };
+
+  const documents = searchQuery && searchResults ? searchResults.documents : documentsData?.documents || [];
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="max-w-6xl mx-auto p-6 space-y-6">
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Documents</h1>
-          {caseData && (
-            <p className="text-muted-foreground">
-              Case: {caseData.name}
-            </p>
-          )}
+          <h1 className="text-3xl font-bold">Document Management</h1>
+          <p className="text-gray-600 mt-2">Upload, manage, and share case documents</p>
         </div>
-        <div className="flex gap-2">
-          <Dialog open={showUpload} onOpenChange={setShowUpload}>
-            <DialogTrigger asChild>
-              <Button>
-                <Upload className="h-4 w-4 mr-2" />
-                Upload Documents
+        <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Upload className="w-4 h-4 mr-2" />
+              Upload Documents
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Upload Documents</DialogTitle>
+              <DialogDescription>
+                Select files to upload to the case
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="case-select">Case</Label>
+                <Select value={selectedCaseId} onValueChange={setSelectedCaseId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a case" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Case #1 - John Doe</SelectItem>
+                    <SelectItem value="2">Case #2 - Jane Smith</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="title">Title (Optional)</Label>
+                <Input
+                  id="title"
+                  value={uploadTitle}
+                  onChange={(e) => setUploadTitle(e.target.value)}
+                  placeholder="Document title"
+                />
+              </div>
+              <div>
+                <Label htmlFor="files">Files</Label>
+                <Input
+                  id="files"
+                  type="file"
+                  multiple
+                  onChange={(e) => setSelectedFiles(e.target.files)}
+                  accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setUploadDialogOpen(false)}>
+                Cancel
               </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Upload Documents</DialogTitle>
-              </DialogHeader>
-              <DocumentUpload
-                caseId={caseIdNum}
-                folderId={selectedFolder}
-                onUploadComplete={() => setShowUpload(false)}
-                onClose={() => setShowUpload(false)}
-              />
-            </DialogContent>
-          </Dialog>
-        </div>
+              <Button onClick={handleUpload} disabled={uploadMutation.isPending}>
+                {uploadMutation.isPending ? "Uploading..." : "Upload"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      {/* Quick Search */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Search className="h-5 w-5" />
-            Quick Search
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search across all documents..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Button variant="outline">
-              <Filter className="h-4 w-4 mr-2" />
-              Filters
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Document Management */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Sidebar - Folders */}
-        <div className="lg:col-span-1">
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Folders</CardTitle>
-                <Button variant="ghost" size="sm">
-                  <FolderPlus className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Button
-                variant={selectedFolder === undefined ? "secondary" : "ghost"}
-                className="w-full justify-start"
-                onClick={() => setSelectedFolder(undefined)}
-              >
-                All Documents
-              </Button>
-              <Button
-                variant={selectedFolder === null ? "secondary" : "ghost"}
-                className="w-full justify-start"
-                onClick={() => setSelectedFolder(undefined)}
-              >
-                📁 Root Folder
-              </Button>
-              {/* TODO: Add dynamic folder list */}
-            </CardContent>
-          </Card>
-
-          {/* Quick Stats */}
-          <Card className="mt-4">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Statistics</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Total Documents</span>
-                <span className="font-medium">--</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Total Size</span>
-                <span className="font-medium">--</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Recent Uploads</span>
-                <span className="font-medium">--</span>
-              </div>
-            </CardContent>
-          </Card>
+      {/* Search and Filters */}
+      <div className="flex gap-4 items-center">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Input
+            placeholder="Search documents..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
         </div>
+        <Select value={selectedCaseId} onValueChange={setSelectedCaseId}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="Select case" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="1">Case #1 - John Doe</SelectItem>
+            <SelectItem value="2">Case #2 - Jane Smith</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
-        {/* Main Content - Document List */}
-        <div className="lg:col-span-3">
+      {/* Documents List */}
+      <div className="grid gap-4">
+        {documentsLoading || searchLoading ? (
+          <div className="text-center py-8">Loading documents...</div>
+        ) : documents.length === 0 ? (
           <Card>
-            <CardHeader>
-              <CardTitle>Documents</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <DocumentList
-                caseId={caseIdNum}
-                folderId={selectedFolder}
-              />
+            <CardContent className="text-center py-8">
+              <FileText className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+              <p className="text-gray-600">No documents found</p>
+              {searchQuery && (
+                <p className="text-sm text-gray-500 mt-2">
+                  Try adjusting your search terms
+                </p>
+              )}
             </CardContent>
           </Card>
-        </div>
+        ) : (
+          documents.map((document: Document) => (
+            <Card key={document.id}>
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <CardTitle className="text-lg">{document.title}</CardTitle>
+                    <CardDescription className="flex items-center gap-4 mt-2">
+                      <span className="flex items-center gap-1">
+                        <FileText className="w-4 h-4" />
+                        {document.fileName}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-4 h-4" />
+                        {formatDate(document.uploadedAt)}
+                      </span>
+                      {document.fileSize && (
+                        <Badge variant="secondary">
+                          {formatFileSize(document.fileSize)}
+                        </Badge>
+                      )}
+                    </CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDownload(document.id)}
+                    >
+                      <Download className="w-4 h-4 mr-1" />
+                      Download
+                    </Button>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedDocumentId(document.id)}
+                        >
+                          <Share className="w-4 h-4 mr-1" />
+                          Share
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Manage Document Access</DialogTitle>
+                          <DialogDescription>
+                            Grant or revoke access to this document
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div>
+                            <Label htmlFor="user-select">Grant Access to User</Label>
+                            <div className="flex gap-2 mt-2">
+                              <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                                <SelectTrigger className="flex-1">
+                                  <SelectValue placeholder="Select a user" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {usersData?.users?.map((user: User) => (
+                                    <SelectItem key={user.id} value={user.id.toString()}>
+                                      {user.name} ({user.email})
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Button onClick={handleGrantAccess} disabled={grantAccessMutation.isPending}>
+                                <UserPlus className="w-4 h-4 mr-1" />
+                                Grant
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </div>
+              </CardHeader>
+            </Card>
+          ))
+        )}
       </div>
     </div>
   );
