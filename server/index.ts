@@ -68,7 +68,7 @@ app.use((req, res, next) => {
       } else {
         serveStatic(app);
       }
-    } catch (viteError) {
+    } catch (viteError: any) {
       console.warn("Vite setup failed, serving static files:", viteError.message);
       serveStatic(app);
     }
