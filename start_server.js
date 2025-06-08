@@ -1,46 +1,56 @@
 import { spawn } from 'child_process';
-import fs from 'fs';
+import { writeFileSync } from 'fs';
 
-// Kill any existing server process
-try {
-  const pidFile = '.server.pid';
-  if (fs.existsSync(pidFile)) {
-    const oldPid = fs.readFileSync(pidFile, 'utf8').trim();
-    try {
-      process.kill(oldPid, 'SIGTERM');
-    } catch (e) {
-      // Process already dead
+function startServer() {
+  console.log('Starting Fiducible server...');
+  
+  const server = spawn('npx', ['tsx', 'server/index.ts'], {
+    env: { ...process.env, NODE_ENV: 'development' },
+    stdio: ['ignore', 'pipe', 'pipe'],
+    detached: false
+  });
+
+  writeFileSync('app.pid', server.pid.toString());
+
+  server.stdout.on('data', (data) => {
+    process.stdout.write(data);
+  });
+
+  server.stderr.on('data', (data) => {
+    process.stderr.write(data);
+  });
+
+  server.on('close', (code) => {
+    console.log(`Server process exited with code ${code}`);
+    if (code !== 0) {
+      console.log('Restarting server in 3 seconds...');
+      setTimeout(startServer, 3000);
     }
-  }
-} catch (e) {
-  // Ignore errors
+  });
+
+  server.on('error', (err) => {
+    console.error('Server spawn error:', err);
+    setTimeout(startServer, 3000);
+  });
+
+  return server;
 }
 
-// Start new server
-const server = spawn('npx', ['tsx', 'server/index.ts'], {
-  detached: true,
-  stdio: ['ignore', 'pipe', 'pipe']
-});
-
-// Write PID to file
-fs.writeFileSync('.server.pid', server.pid.toString());
-
-// Log output
-server.stdout.on('data', (data) => {
-  console.log(data.toString());
-});
-
-server.stderr.on('data', (data) => {
-  console.error(data.toString());
-});
-
-// Detach from parent
-server.unref();
-
-console.log(`Server started with PID: ${server.pid}`);
-
-// Keep script alive for a few seconds to capture initial output
-setTimeout(() => {
-  console.log('Server startup script complete');
+// Handle process termination
+process.on('SIGTERM', () => {
+  console.log('Received SIGTERM, shutting down gracefully');
   process.exit(0);
-}, 10000);
+});
+
+process.on('SIGINT', () => {
+  console.log('Received SIGINT, shutting down gracefully');
+  process.exit(0);
+});
+
+// Start the server
+const serverProcess = startServer();
+
+// Keep the process alive
+setInterval(() => {
+  console.log('Keep-alive ping - Server running');
+}, 60000);
