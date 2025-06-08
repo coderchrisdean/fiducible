@@ -1,33 +1,37 @@
-import { spawn } from 'child_process';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { exec } from 'child_process';
+import { writeFileSync, existsSync } from 'fs';
 
 function startServer() {
-  const server = spawn('npx', ['tsx', 'server/index.ts'], {
-    cwd: join(__dirname, '..'),
-    stdio: 'inherit',
-    detached: false
+  console.log('Starting Fiducible daemon...');
+  
+  const server = exec('npx tsx server/index.ts', {
+    env: { ...process.env, NODE_ENV: 'development', PORT: '5000' },
+    cwd: process.cwd()
+  });
+
+  server.stdout.on('data', (data) => {
+    console.log(data.toString());
+  });
+
+  server.stderr.on('data', (data) => {
+    console.error(data.toString());
+  });
+
+  server.on('close', (code) => {
+    console.log(`Server closed with code ${code}`);
+    if (code !== 0) {
+      console.log('Restarting in 2 seconds...');
+      setTimeout(startServer, 2000);
+    }
   });
 
   server.on('error', (err) => {
     console.error('Server error:', err);
-    setTimeout(startServer, 2000); // Restart after 2 seconds
+    setTimeout(startServer, 2000);
   });
 
-  server.on('exit', (code, signal) => {
-    console.log(`Server exited with code ${code} and signal ${signal}`);
-    if (code !== 0) {
-      setTimeout(startServer, 2000); // Restart if crashed
-    }
-  });
-
-  console.log(`Server started with PID: ${server.pid}`);
-  return server;
+  // Keep process alive
+  process.stdin.resume();
 }
 
-// Start the server
 startServer();
