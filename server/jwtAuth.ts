@@ -75,7 +75,7 @@ export const authenticateToken = async (
 };
 
 export async function setupJWTAuth(app: Express) {
-  // Login route
+  // Login route with email verification check
   app.post("/api/login", async (req: Request, res: Response) => {
     try {
       const { email, password } = loginSchema.parse(req.body);
@@ -90,6 +90,14 @@ export async function setupJWTAuth(app: Express) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
+      // Check if email is verified
+      if (!user.emailVerified) {
+        return res.status(403).json({ 
+          message: "Please verify your email address before signing in. Check your inbox for a verification link.",
+          emailVerificationRequired: true
+        });
+      }
+
       const token = generateToken({
         id: user.id,
         email: user.email,
@@ -98,6 +106,8 @@ export async function setupJWTAuth(app: Express) {
       });
 
       const { passwordHash: _, ...userWithoutPassword } = user;
+
+      console.log(`[AUTH] [LOGIN] User ${email} successfully logged in`);
 
       res.json({
         token,
@@ -109,7 +119,7 @@ export async function setupJWTAuth(app: Express) {
     }
   });
 
-  // Register route
+  // Register route with email verification
   app.post("/api/register", async (req: Request, res: Response) => {
     try {
       const { name, email, password } = registerSchema.parse(req.body);
@@ -124,26 +134,43 @@ export async function setupJWTAuth(app: Express) {
       const saltRounds = 10;
       const passwordHash = await bcrypt.hash(password, saltRounds);
 
-      // Create user
+      // Create user with emailVerified: false
       const newUser = await storage.createUser({
         name,
         email,
         passwordHash,
         globalRole: "conservator",
+        emailVerified: false,
       });
 
-      const token = generateToken({
-        id: newUser.id,
-        email: newUser.email,
-        name: newUser.name,
-        globalRole: newUser.globalRole,
+      // Import email service and create verification token
+      const { emailService } = await import("./emailService");
+      const verificationToken = emailService.generateVerificationToken();
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+      // Store email verification
+      await storage.createEmailVerification({
+        userId: newUser.id,
+        token: verificationToken,
+        expiresAt,
+        verified: false,
       });
+
+      // Send verification email using Resend
+      try {
+        await emailService.sendVerificationEmail(email, name, verificationToken);
+        console.log(`[AUTH] [REGISTER] Verification email sent to ${email}`);
+      } catch (emailError) {
+        console.error(`[AUTH] [REGISTER] Failed to send verification email:`, emailError);
+        // Don't fail registration if email sending fails
+      }
 
       const { passwordHash: _, ...userWithoutPassword } = newUser;
 
       res.status(201).json({
-        token,
         user: userWithoutPassword,
+        message: "Account created successfully. Please check your email to verify your account before signing in.",
+        emailSent: true,
       });
     } catch (error) {
       console.error("Register error:", error);
@@ -163,6 +190,91 @@ export async function setupJWTAuth(app: Express) {
       res.json(userWithoutPassword);
     } catch (error) {
       console.error("Get user error:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // Email verification route
+  app.get("/api/verify-email/:token", async (req: Request, res: Response) => {
+    try {
+      const { token } = req.params;
+      
+      const verification = await storage.getEmailVerification(token);
+      if (!verification) {
+        return res.status(400).json({ message: "Invalid or expired verification token" });
+      }
+
+      if (verification.verified) {
+        return res.status(400).json({ message: "Email already verified" });
+      }
+
+      if (verification.expiresAt < new Date()) {
+        return res.status(400).json({ message: "Verification token has expired" });
+      }
+
+      // Mark email as verified
+      await storage.updateUser(verification.userId, { emailVerified: true });
+      await storage.updateEmailVerification(verification.id, { verified: true });
+
+      console.log(`[AUTH] [VERIFY] Email verified for user ID ${verification.userId}`);
+
+      res.json({ 
+        message: "Email successfully verified. You can now sign in to your account.",
+        verified: true 
+      });
+    } catch (error) {
+      console.error("Email verification error:", error);
+      res.status(500).json({ message: "Verification failed" });
+    }
+  });
+
+  // Resend verification email route
+  app.post("/api/resend-verification", async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body;
+      
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (user.emailVerified) {
+        return res.status(400).json({ message: "Email already verified" });
+      }
+
+      // Generate new verification token
+      const { emailService } = await import("./emailService");
+      const verificationToken = emailService.generateVerificationToken();
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+      // Update existing verification or create new one
+      const existingVerification = await storage.getEmailVerificationByUserId(user.id);
+      if (existingVerification) {
+        await storage.updateEmailVerification(existingVerification.id, {
+          token: verificationToken,
+          expiresAt,
+          verified: false,
+        });
+      } else {
+        await storage.createEmailVerification({
+          userId: user.id,
+          token: verificationToken,
+          expiresAt,
+          verified: false,
+        });
+      }
+
+      // Send verification email
+      try {
+        await emailService.sendVerificationEmail(email, user.name, verificationToken);
+        console.log(`[AUTH] [RESEND] Verification email resent to ${email}`);
+        res.json({ message: "Verification email sent successfully" });
+      } catch (emailError) {
+        console.error(`[AUTH] [RESEND] Failed to resend verification email:`, emailError);
+        res.status(500).json({ message: "Failed to send verification email" });
+      }
+    } catch (error) {
+      console.error("Resend verification error:", error);
       res.status(500).json({ message: "Server error" });
     }
   });

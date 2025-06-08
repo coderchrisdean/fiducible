@@ -8,29 +8,25 @@ import { Link } from "wouter";
 import { format } from "date-fns";
 import type { TimeEntry, Conservatee } from "@shared/schema";
 
+interface DashboardStats {
+  activeConservatees: number;
+  hoursThisWeek: number;
+  totalEntries: number;
+  dailyAverage: number;
+}
+
 export default function Dashboard() {
-  const { data: timeEntries, isLoading: timeEntriesLoading } = useQuery<TimeEntry[]>({
-    queryKey: ["/api/time-entries"],
+  const { data: dashboardStats, isLoading: statsLoading } = useQuery<DashboardStats>({
+    queryKey: ["/api/dashboard/stats"],
+  });
+
+  const { data: recentTimeEntries, isLoading: entriesLoading } = useQuery<TimeEntry[]>({
+    queryKey: ["/api/dashboard/recent-entries"],
   });
 
   const { data: conservatees, isLoading: conservateesLoading } = useQuery<Conservatee[]>({
     queryKey: ["/api/conservatees"],
   });
-
-  // Calculate recent activity and totals
-  const recentTimeEntries = timeEntries?.slice(0, 5) || [];
-  const totalHoursThisWeek = timeEntries?.reduce((total, entry) => {
-    const entryDate = new Date(entry.date);
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    
-    if (entryDate >= weekAgo) {
-      return total + parseFloat(entry.timeSpent);
-    }
-    return total;
-  }, 0) || 0;
-
-  const totalConservatees = conservatees?.length || 0;
 
   return (
     <div className="space-y-8">

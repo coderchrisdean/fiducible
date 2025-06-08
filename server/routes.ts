@@ -186,13 +186,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Dashboard routes - user-specific data
+  app.get("/api/dashboard/stats", authenticateToken, async (req: AuthenticatedRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      console.log(`[API] [DASHBOARD_STATS] Loading dashboard stats for user ${userId}`);
+      
+      // Get user's conservatees
+      const conservatees = await storage.getConservateesByConservator(userId);
+      
+      // Get user's recent time entries
+      const timeEntries = await storage.getTimeEntriesByConservator(userId);
+      
+      // Calculate stats
+      const activeConservatees = conservatees.length;
+      const totalEntries = timeEntries.length;
+      
+      // Calculate this week's hours
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      const thisWeekEntries = timeEntries.filter(entry => 
+        new Date(entry.date) >= oneWeekAgo
+      );
+      const hoursThisWeek = thisWeekEntries.reduce((total, entry) => total + entry.hours, 0);
+      
+      // Calculate daily average (last 30 days)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const recentEntries = timeEntries.filter(entry => 
+        new Date(entry.date) >= thirtyDaysAgo
+      );
+      const totalRecentHours = recentEntries.reduce((total, entry) => total + entry.hours, 0);
+      const dailyAverage = recentEntries.length > 0 ? totalRecentHours / 30 : 0;
+      
+      res.json({
+        activeConservatees,
+        hoursThisWeek,
+        totalEntries,
+        dailyAverage: Math.round(dailyAverage * 100) / 100
+      });
+    } catch (error) {
+      console.error('[API] [DASHBOARD_STATS] Error:', error);
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.get("/api/dashboard/recent-entries", authenticateToken, async (req: AuthenticatedRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const limit = parseInt(req.query.limit as string) || 5;
+      
+      console.log(`[API] [RECENT_ENTRIES] Loading recent time entries for user ${userId}`);
+      
+      const timeEntries = await storage.getTimeEntriesByConservator(userId);
+      
+      // Sort by date descending and limit
+      const recentEntries = timeEntries
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .slice(0, limit);
+      
+      res.json(recentEntries);
+    } catch (error) {
+      console.error('[API] [RECENT_ENTRIES] Error:', error);
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+
   // Time entry routes
-  app.get("/api/time-entries", async (req, res) => {
+  app.get("/api/time-entries", authenticateToken, async (req: AuthenticatedRequest, res) => {
     console.log('[API] [GET_TIME_ENTRIES] [' + new Date().toISOString() + '] Request received');
     try {
-      const conservatorId = 1; // Mock for now
-      console.log('[API] [GET_TIME_ENTRIES] [' + new Date().toISOString() + '] Fetching time entries for conservator:', conservatorId);
-      const timeEntries = await storage.getTimeEntriesByConservator(conservatorId);
+      const userId = req.user!.id;
+      console.log('[API] [GET_TIME_ENTRIES] [' + new Date().toISOString() + '] Fetching time entries for user:', userId);
+      const timeEntries = await storage.getTimeEntriesByConservator(userId);
       console.log('[API] [GET_TIME_ENTRIES] [' + new Date().toISOString() + '] Successfully fetched', timeEntries.length, 'time entries');
       res.json(timeEntries);
     } catch (error) {
