@@ -278,6 +278,501 @@
 - Afternoon: Documentation updates
 - Evening: Deployment preparation
 
+## Document Management Feature Plan
+
+### Feature Overview
+
+The Document Management system will enable users to upload, organize, search, and share case-related documents within Fiducible. Documents will be tied to specific cases and accessible based on user permissions within each case.
+
+**Core Capabilities:**
+- Document upload with drag-and-drop interface
+- Hierarchical folder structure with tagging system
+- Full-text search using PostgreSQL's TSVector
+- Case-based access control and sharing
+- Document versioning and metadata tracking
+- Secure download with audit trails
+
+**Storage Strategy:**
+- **Phase 1**: Local file storage in `/uploads` directory
+- **Phase 2**: AWS S3 integration for production scalability
+- Environment variable `STORAGE_TYPE` to toggle between "local" and "s3"
+
+### Database Models
+
+#### Documents Table
+```typescript
+export const documents = pgTable("documents", {
+  id: serial("id").primaryKey(),
+  caseId: integer("case_id").notNull().references(() => cases.id),
+  uploadedBy: integer("uploaded_by").notNull().references(() => users.id),
+  title: text("title").notNull(),
+  description: text("description"),
+  fileName: text("file_name").notNull(),
+  filePath: text("file_path").notNull(),
+  fileSize: integer("file_size").notNull(), // bytes
+  mimeType: text("mime_type").notNull(),
+  folderId: integer("folder_id").references(() => documentFolders.id),
+  searchVector: text("search_vector"), // TSVector for full-text search
+  downloadCount: integer("download_count").notNull().default(0),
+  isArchived: boolean("is_archived").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+```
+
+#### Document Folders Table
+```typescript
+export const documentFolders = pgTable("document_folders", {
+  id: serial("id").primaryKey(),
+  caseId: integer("case_id").notNull().references(() => cases.id),
+  name: text("name").notNull(),
+  parentId: integer("parent_id").references(() => documentFolders.id),
+  createdBy: integer("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+```
+
+#### Document Tags Table
+```typescript
+export const documentTags = pgTable("document_tags", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  color: text("color").notNull().default("#6366f1"), // Hex color for UI
+  caseId: integer("case_id").notNull().references(() => cases.id),
+  createdBy: integer("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+```
+
+#### Document Tag Relations Table
+```typescript
+export const documentTagRelations = pgTable("document_tag_relations", {
+  id: serial("id").primaryKey(),
+  documentId: integer("document_id").notNull().references(() => documents.id),
+  tagId: integer("tag_id").notNull().references(() => documentTags.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+```
+
+#### Document Access Logs Table
+```typescript
+export const documentAccessLogs = pgTable("document_access_logs", {
+  id: serial("id").primaryKey(),
+  documentId: integer("document_id").notNull().references(() => documents.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  action: text("action", { enum: ["view", "download", "edit", "delete"] }).notNull(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+```
+
+### Required Packages
+
+**Backend Dependencies:**
+```json
+{
+  "multer": "^1.4.5-lts.1",
+  "@types/multer": "^1.4.11",
+  "mime-types": "^2.1.35",
+  "@types/mime-types": "^2.1.4",
+  "aws-sdk": "^2.1691.0",
+  "@aws-sdk/client-s3": "^3.645.0",
+  "sharp": "^0.33.5"
+}
+```
+
+**Frontend Dependencies:**
+```json
+{
+  "react-dropzone": "^14.2.3",
+  "@tanstack/react-virtual": "^3.10.8",
+  "fuse.js": "^7.0.0"
+}
+```
+
+### Environment Variables
+
+```env
+# Document Storage Configuration
+STORAGE_TYPE=local # or "s3"
+UPLOAD_DIR=./uploads
+MAX_FILE_SIZE=10485760 # 10MB in bytes
+ALLOWED_FILE_TYPES=pdf,doc,docx,txt,jpg,jpeg,png,gif
+
+# AWS S3 Configuration (when STORAGE_TYPE=s3)
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=your_access_key
+AWS_SECRET_ACCESS_KEY=your_secret_key
+S3_BUCKET_NAME=fiducible-documents
+S3_BUCKET_REGION=us-east-1
+
+# Full-text Search Configuration
+ENABLE_FULL_TEXT_SEARCH=true
+SEARCH_LANGUAGE=english # PostgreSQL text search language
+```
+
+### API Endpoints
+
+#### Document Upload
+**POST /api/cases/:caseId/documents/upload**
+- **Description**: Upload document(s) to a specific case
+- **Parameters**: `caseId: number`
+- **Body**: `FormData` with file(s) and metadata
+- **Payload**: 
+  ```typescript
+  {
+    files: File[], // Multiple files supported
+    folderId?: number,
+    tags?: string[], // Tag names to create/assign
+    description?: string
+  }
+  ```
+- **Response**: 
+  ```typescript
+  {
+    documents: Document[],
+    message: string
+  }
+  ```
+- **Features**: 
+  - File validation (type, size)
+  - Automatic text extraction for search indexing
+  - Thumbnail generation for images
+  - Virus scanning (future enhancement)
+
+#### Document Listing
+**GET /api/cases/:caseId/documents**
+- **Description**: List documents in a case with filtering
+- **Parameters**: `caseId: number`
+- **Query Parameters**:
+  ```typescript
+  {
+    folderId?: number,
+    tags?: string[], // Filter by tag names
+    search?: string,
+    page?: number,
+    limit?: number,
+    sortBy?: "name" | "date" | "size" | "downloads",
+    sortOrder?: "asc" | "desc",
+    archived?: boolean
+  }
+  ```
+- **Response**:
+  ```typescript
+  {
+    documents: Document[],
+    totalCount: number,
+    page: number,
+    totalPages: number,
+    folders: DocumentFolder[],
+    tags: DocumentTag[]
+  }
+  ```
+
+#### Document Download
+**GET /api/documents/:id/download**
+- **Description**: Download document with access logging
+- **Parameters**: `id: number`
+- **Response**: File stream with appropriate headers
+- **Features**:
+  - Access control validation
+  - Download counter increment
+  - Access logging for audit trails
+  - Content-Disposition headers for proper file naming
+
+#### Document Search
+**GET /api/cases/:caseId/documents/search**
+- **Description**: Full-text search across documents
+- **Parameters**: `caseId: number`
+- **Query Parameters**:
+  ```typescript
+  {
+    q: string, // Search query
+    tags?: string[],
+    folderId?: number,
+    page?: number,
+    limit?: number
+  }
+  ```
+- **Response**:
+  ```typescript
+  {
+    documents: Document[],
+    totalCount: number,
+    searchTime: number, // milliseconds
+    suggestions?: string[] // Search suggestions
+  }
+  ```
+
+#### Folder Management
+**POST /api/cases/:caseId/folders**
+- **Description**: Create document folder
+- **Body**: `{ name: string, parentId?: number }`
+
+**GET /api/cases/:caseId/folders**
+- **Description**: List folder hierarchy
+
+**PUT /api/folders/:id**
+- **Description**: Update folder name/parent
+
+**DELETE /api/folders/:id**
+- **Description**: Delete folder (must be empty)
+
+#### Tag Management
+**POST /api/cases/:caseId/tags**
+- **Description**: Create document tag
+- **Body**: `{ name: string, color?: string }`
+
+**GET /api/cases/:caseId/tags**
+- **Description**: List all tags for case
+
+**PUT /api/tags/:id**
+- **Description**: Update tag properties
+
+**DELETE /api/tags/:id**
+- **Description**: Delete tag and remove from documents
+
+#### Document Operations
+**PUT /api/documents/:id**
+- **Description**: Update document metadata
+- **Body**: `{ title?: string, description?: string, folderId?: number }`
+
+**DELETE /api/documents/:id**
+- **Description**: Archive/delete document
+
+**POST /api/documents/:id/tags**
+- **Description**: Add tags to document
+- **Body**: `{ tagIds: number[] }`
+
+**DELETE /api/documents/:id/tags/:tagId**
+- **Description**: Remove tag from document
+
+### Frontend Components & Routes
+
+#### New Pages
+1. **Document Manager Page** (`/cases/:caseId/documents`)
+   - File: `client/src/pages/documents.tsx`
+   - Main document management interface
+   - Folder navigation with breadcrumbs
+   - Document grid/list view toggle
+
+2. **Document Viewer Page** (`/documents/:id/view`)
+   - File: `client/src/pages/document-viewer.tsx`
+   - Document preview with metadata panel
+   - Tag management interface
+   - Download and sharing options
+
+#### Core Components
+
+1. **Document Upload Component**
+   - File: `client/src/components/document-upload.tsx`
+   - Drag-and-drop interface with progress bars
+   - File validation and preview
+   - Bulk upload support
+
+2. **Document List Component**
+   - File: `client/src/components/document-list.tsx`
+   - Virtualized list for performance
+   - Sort and filter controls
+   - Context menu for document actions
+
+3. **Folder Tree Component**
+   - File: `client/src/components/folder-tree.tsx`
+   - Hierarchical folder navigation
+   - Drag-and-drop folder organization
+   - New folder creation
+
+4. **Search Bar Component**
+   - File: `client/src/components/document-search.tsx`
+   - Full-text search with autocomplete
+   - Advanced search filters
+   - Search history and suggestions
+
+5. **Tag Manager Component**
+   - File: `client/src/components/tag-manager.tsx`
+   - Tag creation and editing
+   - Color picker for tag styling
+   - Tag assignment interface
+
+6. **Document Card Component**
+   - File: `client/src/components/document-card.tsx`
+   - Document thumbnail and metadata
+   - Quick actions (download, share, tag)
+   - File type icons and previews
+
+### Implementation Checkpoints
+
+#### Phase 1: Core Infrastructure (8-10 hours)
+
+**Checkpoint 1A: Database Schema & Storage Setup (3 hours)**
+- Files to modify:
+  - `shared/schema.ts` - Add all document-related tables
+  - `server/storage.ts` - Implement IStorage methods for documents
+  - `server/fileStorage.ts` - New file for local/S3 storage abstraction
+- Tasks:
+  - [ ] Define document database models with relations
+  - [ ] Create storage interface methods for CRUD operations
+  - [ ] Implement local file storage with proper error handling
+  - [ ] Add environment variable configuration
+
+**Checkpoint 1B: File Upload Infrastructure (3 hours)**
+- Files to modify:
+  - `server/routes.ts` - Add document upload endpoints
+  - `server/middleware/fileUpload.ts` - New multer configuration
+  - `server/utils/fileValidation.ts` - New file validation utilities
+- Tasks:
+  - [ ] Configure multer for file uploads
+  - [ ] Implement file validation (type, size, security)
+  - [ ] Create upload endpoint with metadata handling
+  - [ ] Add error handling for upload failures
+
+**Checkpoint 1C: Basic API Endpoints (2-3 hours)**
+- Files to modify:
+  - `server/routes.ts` - Document CRUD endpoints
+  - `server/utils/searchUtils.ts` - New search utilities
+- Tasks:
+  - [ ] Implement document listing with pagination
+  - [ ] Create download endpoint with access control
+  - [ ] Add basic search functionality
+  - [ ] Implement document deletion/archiving
+
+#### Phase 2: Frontend Components (10-12 hours)
+
+**Checkpoint 2A: Upload Interface (4 hours)**
+- Files to create:
+  - `client/src/components/document-upload.tsx`
+  - `client/src/components/ui/file-dropzone.tsx`
+  - `client/src/hooks/useFileUpload.ts`
+- Tasks:
+  - [ ] Create drag-and-drop upload component
+  - [ ] Implement upload progress indicators
+  - [ ] Add file validation on frontend
+  - [ ] Handle upload errors gracefully
+
+**Checkpoint 2B: Document List & Navigation (4 hours)**
+- Files to create:
+  - `client/src/components/document-list.tsx`
+  - `client/src/components/folder-tree.tsx`
+  - `client/src/components/document-card.tsx`
+- Tasks:
+  - [ ] Build document listing with virtual scrolling
+  - [ ] Create folder navigation component
+  - [ ] Implement sort and filter controls
+  - [ ] Add document preview thumbnails
+
+**Checkpoint 2C: Search & Tagging (3-4 hours)**
+- Files to create:
+  - `client/src/components/document-search.tsx`
+  - `client/src/components/tag-manager.tsx`
+  - `client/src/hooks/useDocumentSearch.ts`
+- Tasks:
+  - [ ] Build search interface with filters
+  - [ ] Create tag management system
+  - [ ] Implement search autocomplete
+  - [ ] Add advanced search modal
+
+#### Phase 3: Advanced Features (6-8 hours)
+
+**Checkpoint 3A: Full-Text Search (3 hours)**
+- Files to modify:
+  - `server/utils/searchUtils.ts` - PostgreSQL TSVector implementation
+  - `server/routes.ts` - Search endpoints
+  - `shared/schema.ts` - Add search vector columns
+- Tasks:
+  - [ ] Implement PostgreSQL full-text search
+  - [ ] Add text extraction from documents
+  - [ ] Create search indexing system
+  - [ ] Add search result ranking
+
+**Checkpoint 3B: Folder Management (2 hours)**
+- Files to create:
+  - `client/src/components/folder-manager.tsx`
+  - `server/routes.ts` - Folder endpoints
+- Tasks:
+  - [ ] Implement folder CRUD operations
+  - [ ] Add drag-and-drop folder organization
+  - [ ] Create folder hierarchy navigation
+  - [ ] Handle folder permissions
+
+**Checkpoint 3C: Document Viewer & Metadata (2-3 hours)**
+- Files to create:
+  - `client/src/pages/document-viewer.tsx`
+  - `client/src/components/document-preview.tsx`
+- Tasks:
+  - [ ] Build document viewer page
+  - [ ] Implement file preview for common types
+  - [ ] Add metadata editing interface
+  - [ ] Create document sharing controls
+
+#### Phase 4: Performance & Security (4-6 hours)
+
+**Checkpoint 4A: Performance Optimization (2-3 hours)**
+- Files to modify:
+  - `client/src/components/document-list.tsx` - Add virtualization
+  - `server/routes.ts` - Add caching headers
+  - `server/utils/imageProcessing.ts` - New thumbnail generation
+- Tasks:
+  - [ ] Implement virtual scrolling for large document lists
+  - [ ] Add thumbnail generation for images/PDFs
+  - [ ] Optimize database queries with proper indexing
+  - [ ] Add response caching for document metadata
+
+**Checkpoint 4B: Security & Access Control (2-3 hours)**
+- Files to create:
+  - `server/middleware/documentAuth.ts` - Document access control
+  - `server/utils/auditLog.ts` - Access logging utilities
+- Tasks:
+  - [ ] Implement case-based document access control
+  - [ ] Add document access logging for audits
+  - [ ] Validate file uploads for security threats
+  - [ ] Add rate limiting for upload endpoints
+
+#### Phase 5: S3 Integration & Deployment (3-4 hours)
+
+**Checkpoint 5A: AWS S3 Integration (2-3 hours)**
+- Files to create:
+  - `server/storage/s3Storage.ts` - S3 storage implementation
+  - `server/utils/storageFactory.ts` - Storage provider factory
+- Tasks:
+  - [ ] Implement S3 upload/download functionality
+  - [ ] Add storage provider switching via environment variables
+  - [ ] Configure S3 bucket policies and permissions
+  - [ ] Add S3 error handling and retries
+
+**Checkpoint 5B: Testing & Documentation (1-2 hours)**
+- Files to modify:
+  - `ROUTES.md` - Add document endpoints
+  - `README.md` - Update with document features
+- Tasks:
+  - [ ] Test all document operations end-to-end
+  - [ ] Update API documentation
+  - [ ] Add user documentation for document features
+  - [ ] Test file upload limits and error scenarios
+
+### Integration Points
+
+**Navigation Updates:**
+- Add "Documents" tab to case navigation
+- Update case dashboard to show document metrics
+- Add quick document upload to case header
+
+**Permission Integration:**
+- Leverage existing case role system for document access
+- Add document-specific permissions to case roles
+- Integrate with user case role validation
+
+**Search Integration:**
+- Include documents in global case search
+- Add document results to existing search interfaces
+- Cross-reference documents with time entries and conservatees
+
+### Total Estimated Effort: 30-40 hours
+- Database & API Development: 12-15 hours
+- Frontend Components: 14-18 hours  
+- Advanced Features & Polish: 8-12 hours
+- Testing & Documentation: 3-5 hours
+
 ### File Impact Summary
 
 **High Impact (Core Changes):**
