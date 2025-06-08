@@ -1,0 +1,10 @@
+run:
+  - name: "Start application"
+    command: "npx tsx server/index.ts"
+
+modules:
+  - name: "nodejs-20"
+
+deployment:
+  run: ["npx", "tsx", "server/index.ts"]
+  ignorePorts: false
