@@ -1,0 +1,42 @@
+## FIRST PROMPT: WRITE THE FIX PLAN
+
+I need you to plan out and document fixes for the following issues in **Fiducible**, plus integrate email verification with Resend and extensive logging:
+
+1. **Broken `/time-tracking` route**  
+   - Diagnose and fix both React Router path and backend endpoint.  
+   - Add `console.log` at route entry and exit.  
+2. **Browser Back Button**  
+   - Ensure clicking back properly refreshes page data.  
+   - Add logging in the navigation handler or useEffect cleanup.  
+3. **Document Upload**  
+   - Identify why uploads fail (frontend form, upload endpoint, storage).  
+   - Plan file-accept validation, upload handler, and error logging.  
+4. **Email Verification & Resend**  
+   - Integrate Resend API: generate random code, store in `EmailVerification` table.  
+   - Plan endpoints: `POST /emails/send-verification` and `POST /emails/resend`.  
+   - UI: “Resend Email” button on signup/invitation pages.  
+   - Add logs for API calls and token validation steps.  
+5. **Console Logging & Documentation**  
+   - For each fix, define specific `console.log` statements (file, function, message).  
+   - Update `consolelog.md` with entries for each new log.  
+6. **Checkpoint Breakdown**  
+   - Break into small steps, listing file paths and estimated effort for each fix.  
+7. **Output**  
+   - Write this plan into `Instructions.md` as a checklist with file paths, logs, and estimates.
+
+_Do not start coding—this is the planning phase only._
+
+## SECOND PROMPT: IMPLEMENT THE FIXES
+
+Using the plan in `Instructions.md`, please implement these fixes:
+
+- **Route Fix**: Correct `/time-tracking` in React Router and backend; include start/end logs.  
+- **Back Button**: Update navigation logic to refresh data on back; add logs around history events.  
+- **Document Upload**: Fix form/backend/storage, validate file types, handle errors, and log progress.  
+- **Email Verification**:  
+  - Implement `POST /emails/send-verification` and `POST /emails/resend`.  
+  - Use Resend API to send codes; store tokens in DB; validate on `GET /verify-email`.  
+  - Add “Resend Email” UI and log each step.  
+- **Logging**: Ensure `console.log` exists at all key points; update `consolelog.md`.  
+- After each logical chunk, commit changes and pause for my review before moving on.  
+- Alert me immediately if you hit any blockers.
