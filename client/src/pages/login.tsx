@@ -134,8 +134,8 @@ export default function Login() {
               ← Back to home
             </Link>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
