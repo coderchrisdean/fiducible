@@ -184,6 +184,24 @@ class Doc:
         self.c.setLineWidth(0.75)
         self.c.line(TEXT_LEFT, y, TEXT_RIGHT, y)
 
+    def heading(self, txt, font=FONT_BOLD, size=13):
+        """
+        Centered, bold, underlined section heading (roman-numeral style).
+        E.g.: heading("I.  INTRODUCTION")
+        """
+        self._ensure(1)
+        y = line_y(self.ln) - 4
+        self.c.setFont(font, size)
+        self.c.setFillColor(colors.black)
+        self.c.drawCentredString(PAGE_W / 2, y, txt)
+        # underline: draw a line from text left edge to text right edge
+        w = stringWidth(txt, font, size)
+        x0 = PAGE_W / 2 - w / 2
+        x1 = PAGE_W / 2 + w / 2
+        self.c.setLineWidth(0.5)
+        self.c.line(x0, y - 2, x1, y - 2)
+        self.ln += 1
+
     def sig_line(self, width_in=3.5):
         """Draw a signature underline at the current line, then advance."""
         self._ensure(1)
@@ -203,47 +221,54 @@ def draw_caption_page(c):
     draw_line_numbers(c)
     draw_footer(c, 1)
 
-    MID = TEXT_LEFT + TEXT_WIDTH / 2     # centre of text column
-    STAMP_LEFT = MID + 0.1 * inch        # left edge of clerk-stamp box
+    MID = TEXT_LEFT + TEXT_WIDTH / 2     # column split point
 
-    # ── Filer block (lines 1-8, left column) ─────────────────────────────────
+    # Stamp box: top aligned with text area top, bottom below line 8
+    box_top    = PAGE_H - MARGIN_TOP + 4   # matches line-number rule top
+    box_bottom = line_y(8) - LINE_HEIGHT * 0.5
+    STAMP_LEFT = MID + 0.05 * inch
+    box_right  = TEXT_RIGHT
+
+    # ── Clerk stamp box (draw first so text goes on top) ─────────────────────
+    c.setLineWidth(0.75)
+    c.setFillColor(colors.white)
+    c.rect(STAMP_LEFT, box_bottom,
+           box_right - STAMP_LEFT, box_top - box_bottom,
+           stroke=1, fill=1)
+    label_x = STAMP_LEFT + (box_right - STAMP_LEFT) / 2
+    label_y = (box_top + box_bottom) / 2
+    c.setFont(FONT_NAME, 9)
+    c.setFillColor(colors.grey)
+    c.drawCentredString(label_x, label_y + 6, "FOR CLERK'S FILE STAMP")
+    c.drawCentredString(label_x, label_y - 6, "(Do not type in this area)")
+    c.setFillColor(colors.black)
+
+    # ── Vertical rule separating filer / stamp columns ────────────────────────
+    c.setLineWidth(0.5)
+    c.line(MID, box_top, MID, box_bottom)
+
+    # ── Filer block (left column, lines 1-8) — clipped to left column ─────────
+    c.saveState()
+    clip = c.beginPath()
+    clip.rect(TEXT_LEFT, box_bottom - 2,
+              MID - TEXT_LEFT - 2, box_top - box_bottom + 4)
+    c.clipPath(clip, stroke=0, fill=0)
     filer = [
-        ("DEVONGE CHRISTOPHER DEAN", FONT_BOLD),
-        ("P.O. Box 83582",           FONT_NAME),
-        ("Los Angeles, CA 90083",    FONT_NAME),
-        ("coderchrisdean@protonmail.com", FONT_NAME),
-        ("T: 424-345-4299",          FONT_NAME),
-        ("",                         FONT_NAME),
-        ("Objector, Co-Conservator, and Interested Person,", FONT_NAME),
-        ("In Pro Per",               FONT_ITAL),
+        ("DEVONGE CHRISTOPHER DEAN",          FONT_BOLD),
+        ("P.O. Box 83582",                    FONT_NAME),
+        ("Los Angeles, CA 90083",             FONT_NAME),
+        ("coderchrisdean@protonmail.com",      FONT_NAME),
+        ("T: 424-345-4299",                   FONT_NAME),
+        ("",                                  FONT_NAME),
+        ("Objector, Co-Conservator,",         FONT_NAME),
+        ("and Interested Person, In Pro Per", FONT_ITAL),
     ]
     for i, (txt, fnt) in enumerate(filer, start=1):
         if txt:
             c.setFont(fnt, FONT_SIZE)
             c.setFillColor(colors.black)
             c.drawString(TEXT_LEFT, line_y(i) - 4, txt)
-
-    # ── Clerk stamp box (right column, lines 1-7) ────────────────────────────
-    box_top    = line_y(1) + LINE_HEIGHT * 0.6
-    box_bottom = line_y(7) - LINE_HEIGHT * 0.4
-    box_right  = TEXT_RIGHT - 0.05 * inch
-    c.setLineWidth(0.75)
-    c.setFillColor(colors.white)
-    c.rect(STAMP_LEFT, box_bottom,
-           box_right - STAMP_LEFT, box_top - box_bottom,
-           stroke=1, fill=1)
-    c.setFont(FONT_NAME, 9)
-    c.setFillColor(colors.grey)
-    label_x = STAMP_LEFT + (box_right - STAMP_LEFT) / 2
-    c.drawCentredString(label_x, (box_top + box_bottom) / 2 + 5,
-                        "FOR CLERK'S FILE STAMP")
-    c.drawCentredString(label_x, (box_top + box_bottom) / 2 - 7,
-                        "(Do not type in this area)")
-    c.setFillColor(colors.black)
-
-    # ── Vertical rule separating columns ─────────────────────────────────────
-    c.setLineWidth(0.5)
-    c.line(MID - 0.05 * inch, box_top, MID - 0.05 * inch, box_bottom)
+    c.restoreState()
 
     # ── Court name (lines 10 & 11, centred, bold) ────────────────────────────
     c.setFont(FONT_BOLD, FONT_SIZE)
@@ -253,43 +278,39 @@ def draw_caption_page(c):
     c.drawCentredString(PAGE_W / 2, line_y(11) - 4,
                         "COUNTY OF LOS ANGELES — PROBATE DIVISION")
 
-    # ── Horizontal rule above case title ─────────────────────────────────────
-    c.setLineWidth(0.75)
-    c.line(TEXT_LEFT, line_y(12) + LINE_HEIGHT * 0.4, TEXT_RIGHT,
-           line_y(12) + LINE_HEIGHT * 0.4)
+    # ── Case caption box (lines 13-14): horizontal rules + vertical divider ──
+    cap_top    = line_y(12) - LINE_HEIGHT * 0.55   # rule below blank line 12, above line 13
+    cap_bottom = line_y(14) - LINE_HEIGHT * 0.55   # rule below line 14
 
-    # ── Case title / case number block (lines 13-16) ─────────────────────────
+    c.setLineWidth(0.75)
+    c.line(TEXT_LEFT, cap_top,    TEXT_RIGHT, cap_top)
+    c.line(TEXT_LEFT, cap_bottom, TEXT_RIGHT, cap_bottom)
+    c.setLineWidth(0.5)
+    c.line(MID, cap_top, MID, cap_bottom)
+
     # Left column: case title
     c.setFont(FONT_NAME, FONT_SIZE)
-    c.drawString(TEXT_LEFT, line_y(13) - 4, "In re Durable Power of Attorney of")
+    c.drawString(TEXT_LEFT + 4, line_y(13) - 4, "In re Durable Power of Attorney of")
     c.setFont(FONT_BOLD, FONT_SIZE)
-    c.drawString(TEXT_LEFT, line_y(14) - 4, "DOCK DEAN,")
+    c.drawString(TEXT_LEFT + 4, line_y(14) - 4, "DOCK DEAN,")
     c.setFont(FONT_NAME, FONT_SIZE)
-    c.drawString(TEXT_LEFT + stringWidth("DOCK DEAN, ", FONT_BOLD, FONT_SIZE),
+    c.drawString(TEXT_LEFT + 4 + stringWidth("DOCK DEAN, ", FONT_BOLD, FONT_SIZE),
                  line_y(14) - 4, "Conservatee.")
 
     # Right column: case number + related
+    right_col_x = MID + 8
     c.setFont(FONT_BOLD, FONT_SIZE)
-    c.drawString(MID + 0.15 * inch, line_y(13) - 4, "Case No. 23STPB13044")
+    c.drawString(right_col_x, line_y(13) - 4, "Case No. 23STPB13044")
     c.setFont(FONT_NAME, FONT_SIZE)
-    c.drawString(MID + 0.15 * inch, line_y(14) - 4, "Related: 24STPB01681")
+    c.drawString(right_col_x, line_y(14) - 4, "Related: 24STPB01681")
 
-    # Vertical divider inside case title block
-    c.setLineWidth(0.5)
-    c.line(MID + 0.05 * inch, line_y(12) + LINE_HEIGHT * 0.4,
-           MID + 0.05 * inch, line_y(15) - LINE_HEIGHT * 0.4)
-
-    # Horizontal rule under case title
-    c.line(TEXT_LEFT, line_y(15) - LINE_HEIGHT * 0.4, TEXT_RIGHT,
-           line_y(15) - LINE_HEIGHT * 0.4)
-
-    # ── Document title (lines 17-18, centred, bold) ──────────────────────────
+    # ── Document title (line 17, centred, bold) ───────────────────────────────
     c.setFont(FONT_BOLD, FONT_SIZE)
     c.drawCentredString(PAGE_W / 2, line_y(17) - 4,
                         "NOTICE OF MOTION AND MOTION TO DISQUALIFY COUNSEL")
 
-    # ── Hearing block (lines 20-24) ──────────────────────────────────────────
-    tab  = 1.65 * inch
+    # ── Hearing block (lines 20-23) ───────────────────────────────────────────
+    tab = 1.65 * inch
     hearing = [
         (20, "Hearing Date:", "May 22, 2026"),
         (21, "Time:",         "9:30 a.m."),
@@ -339,9 +360,8 @@ def build_pdf():
     )
     d.skip()
 
-    # ── Ground 1 ─────────────────────────────────────────────────────────────
-    d.text("1.  CONCURRENT CONFLICT OF INTEREST (RULE 1.7).",
-           font=FONT_BOLD, indent=0.5 * inch)
+    # ── Ground I ──────────────────────────────────────────────────────────────
+    d.heading("I.  CONCURRENT CONFLICT OF INTEREST (RULE 1.7)")
     d.skip()
     d.wrapped(
         "Evans jointly represented both co-conservators in this action and in related "
@@ -353,12 +373,10 @@ def build_pdf():
         "access as set forth below.",
         indent=0.5 * inch,
     )
-    d.skip()
+    d.skip(2)
 
-    # ── Ground 2 ─────────────────────────────────────────────────────────────
-    d.text("2.  PERSONAL FINANCIAL INTEREST AS ONGOING CONFLICT",
-           font=FONT_BOLD, indent=0.5 * inch)
-    d.text("    (RULES 1.7(b) AND 1.8).", font=FONT_BOLD, indent=0.5 * inch)
+    # ── Ground II ─────────────────────────────────────────────────────────────
+    d.heading("II.  PERSONAL FINANCIAL INTEREST AS ONGOING CONFLICT (RULES 1.7(b) AND 1.8)")
     d.skip()
     d.wrapped(
         "Evans filed a Notice of Attorneys\u2019 Lien on February 2, 2026, asserting a "
@@ -371,12 +389,10 @@ def build_pdf():
         "extinguish.",
         indent=0.5 * inch,
     )
-    d.skip()
+    d.skip(2)
 
-    # ── Ground 3 ─────────────────────────────────────────────────────────────
-    d.text("3.  REQUESTS FOR SPECIAL NOTICE AS STRUCTURAL ONGOING",
-           font=FONT_BOLD, indent=0.5 * inch)
-    d.text("    PREJUDICE.", font=FONT_BOLD, indent=0.5 * inch)
+    # ── Ground III ────────────────────────────────────────────────────────────
+    d.heading("III.  REQUESTS FOR SPECIAL NOTICE AS STRUCTURAL ONGOING PREJUDICE")
     d.skip()
     d.wrapped(
         "Evans filed Requests for Special Notice in both proceedings simultaneously with "
@@ -388,12 +404,10 @@ def build_pdf():
         "communications.",
         indent=0.5 * inch,
     )
-    d.skip()
+    d.skip(2)
 
-    # ── Ground 4 ─────────────────────────────────────────────────────────────
-    d.text("4.  BREACH OF DUTY OF LOYALTY DURING JOINT REPRESENTATION",
-           font=FONT_BOLD, indent=0.5 * inch)
-    d.text("    (RULES 1.4 AND 1.7).", font=FONT_BOLD, indent=0.5 * inch)
+    # ── Ground IV ─────────────────────────────────────────────────────────────
+    d.heading("IV.  BREACH OF DUTY OF LOYALTY DURING JOINT REPRESENTATION (RULES 1.4 AND 1.7)")
     d.skip()
     d.wrapped(
         "Evans differentially withheld material estate planning documents from Movant "
@@ -404,7 +418,7 @@ def build_pdf():
         "(January 31, 2026).",
         indent=0.5 * inch,
     )
-    d.skip()
+    d.skip(2)
 
     # ── Statutory basis ───────────────────────────────────────────────────────
     d.wrapped(
